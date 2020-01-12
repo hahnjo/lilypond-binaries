@@ -1,0 +1,10 @@
+/downloads/
+/dependencies/
+/lilypond/
+/package/
+/tools/
+
+/*.tar.gz
+
+/*.ly
+/*.pdf
