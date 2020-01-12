@@ -1,6 +1,5 @@
 . "$(dirname $0)/common.sh"
 
-TOOLS="$ROOT/tools"
 TOOLS_BIN="$TOOLS/bin"
 
 if [ ! -d "$TOOLS" ]; then

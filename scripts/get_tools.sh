@@ -2,7 +2,7 @@
 
 set -e
 
-. "$(dirname $0)/tools.sh"
+. "$(dirname $0)/common.sh"
 
 mkdir -p "$TOOLS"
 
