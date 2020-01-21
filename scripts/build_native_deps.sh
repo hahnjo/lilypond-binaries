@@ -146,7 +146,7 @@ build_fontconfig()
         pkg_config_libdir="$pkg_config_libdir:$UTIL_LINUX_INSTALL/lib/pkgconfig"
         PKG_CONFIG_LIBDIR="$pkg_config_libdir" \
         "$src/configure" --prefix="$FONTCONFIG_INSTALL" --disable-shared --enable-static \
-            --disable-docs GPERF="$TOOLS_GPERF"
+            --disable-docs
         $MAKE -j$PROCS
         $MAKE install
         # Patch pkgconfig file for static dependencies

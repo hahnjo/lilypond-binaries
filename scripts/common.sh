@@ -6,6 +6,8 @@ COMMON_INCLUDED="1"
 ROOT="$(pwd)"
 DOWNLOADS="$ROOT/downloads"
 TOOLS="$ROOT/tools"
+TOOLS_BIN="$TOOLS/bin"
+
 
 # Detect environment.
 uname="$(uname)"
