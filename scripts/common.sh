@@ -43,7 +43,7 @@ fi
 if [ -z "$PROCS" ]; then
     if type nproc >/dev/null 2>&1; then
         PROCS=$(nproc)
-    elif [ "$(uname)" = "FreeBSD" ]; then
+    elif [ "$uname" = "FreeBSD" ] || [ "$uname" = "Darwin" ]; then
         PROCS=$(sysctl -n hw.ncpu)
     fi
 fi
