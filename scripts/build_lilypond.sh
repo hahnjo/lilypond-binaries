@@ -8,6 +8,7 @@ if [ -z "$LILYPOND_TAR" ]; then
 fi
 
 . "$(dirname $0)/native_deps.sh"
+. "$(dirname $0)/tools.sh"
 
 LILYPOND="$ROOT/lilypond"
 LILYPOND_SRC="$LILYPOND/src"
@@ -18,13 +19,23 @@ echo "Extracting '$LILYPOND_TAR'..."
 mkdir -p "$LILYPOND_SRC"
 tar -x -f "$LILYPOND_TAR" -C "$LILYPOND_SRC" --strip-components 1
 
+# Enable dynamic relocation.
+cat > "$LILYPOND_SRC/python/relocate-preamble.py.in" <<'EOF'
+"""
+bindir = os.path.abspath (os.path.dirname (sys.argv[0]))
+for p in ['share', 'lib']:
+    datadir = os.path.abspath (bindir + '/../%s/lilypond/@TOPLEVEL_VERSION@/python/' % p)
+    sys.path.insert (0, datadir)
+"""
+EOF
+
 echo "Building lilypond..."
 mkdir -p "$LILYPOND_BUILD"
 (
     cd "$LILYPOND_BUILD"
 
     # Load shared srfi modules.
-    export LD_LIBRARY_PATH="$GUILE_INSTALL/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+    export LD_LIBRARY_PATH="$GUILE_INSTALL/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
     export LDFLAGS="-Wl,--export-dynamic"
 
     pkg_config_libdir="$CAIRO_INSTALL/lib/pkgconfig"
