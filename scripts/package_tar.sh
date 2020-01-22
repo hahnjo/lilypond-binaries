@@ -31,17 +31,17 @@ strip "$LILYPOND_DIR/bin/lilypond"
 
 # Adapt shebang of Python scripts.
 for s in $PYTHON_SCRIPTS; do
-    $SED_I "1 s|.*|#!/usr/bin/env python2|" "$LILYPOND_DIR/bin/$s"
+    sed_i "1 s|.*|#!/usr/bin/env python2|" "$LILYPOND_DIR/bin/$s"
 done
 # Adapt shebang of Guile scripts.
 for s in $GUILE_SCRIPTS; do
-    $SED_I "1 s|.*|#!/usr/bin/env guile|" "$LILYPOND_DIR/bin/$s"
+    sed_i "1 s|.*|#!/usr/bin/env guile|" "$LILYPOND_DIR/bin/$s"
 done
 
 # Copy configuration files for Fontconfig.
 mkdir -p "$LILYPOND_DIR/etc/fonts"
 cp -r "$FONTCONFIG_INSTALL/etc/fonts/fonts.conf" "$LILYPOND_DIR/etc/fonts"
-$SED_I "\\|$FONTCONFIG_INSTALL|d" "$LILYPOND_DIR/etc/fonts/fonts.conf"
+sed_i "\\|$FONTCONFIG_INSTALL|d" "$LILYPOND_DIR/etc/fonts/fonts.conf"
 
 # Copy needed files for Guile.
 cp "$GUILE_INSTALL/lib"/libguile-srfi-srfi-*.so "$LILYPOND_DIR/lib"
@@ -83,7 +83,7 @@ for s in $PYTHON_SCRIPTS; do
 
 script="\$(basename \$0)"
 root="\$(dirname \$0)/.."
-exec "\$root/scripts/$python" "\$root/scripts/\$script" \$@
+exec "\$root/scripts/$python" "\$root/scripts/\$script" "\$@"
 EOF
     chmod a+x "$wrapper"
 done
@@ -98,7 +98,7 @@ script="\$(basename \$0)"
 root="\$(dirname \$0)/.."
 export GUILE_LOAD_PATH="\$root/share/guile/$GUILE_VERSION_MAJOR"
 export LD_LIBRARY_PATH="\$root/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
-exec "\$root/scripts/guile" "\$root/scripts/\$script" \$@
+exec "\$root/scripts/guile" "\$root/scripts/\$script" "\$@"
 EOF
     chmod a+x "$wrapper"
 done

@@ -133,10 +133,10 @@ build_fontconfig()
 
     extract "$FONTCONFIG_ARCHIVE" "$src"
     # Fix uuid.h inclusion
-    $SED_I "s|uuid/uuid\\.h|uuid.h|" "$src/configure" \
+    sed_i "s|uuid/uuid\\.h|uuid.h|" "$src/configure" \
         "$src/src/fchash.c" "$src/src/fccache.c"
     # Don't build tests
-    $SED_I "s|po-conf test|po-conf|" "$src/Makefile.in"
+    sed_i "s|po-conf test|po-conf|" "$src/Makefile.in"
 
     echo "Building fontconfig..."
     mkdir -p "$build"
@@ -150,7 +150,7 @@ build_fontconfig()
         $MAKE -j$PROCS
         $MAKE install
         # Patch pkgconfig file for static dependencies
-        $SED_I -e "s|Requires:.*|& uuid expat|" -e "/Requires.private/d" "$FONTCONFIG_INSTALL/lib/pkgconfig/fontconfig.pc"
+        sed_i -e "s|Requires:.*|& uuid expat|" -e "/Requires.private/d" "$FONTCONFIG_INSTALL/lib/pkgconfig/fontconfig.pc"
     ) > "$LOG/fontconfig.log" 2>&1
 )
 build_fontconfig
@@ -228,7 +228,7 @@ build_glib2()
 
     extract "$GLIB2_ARCHIVE" "$src"
     # Don't build tests
-    $SED_I "s|build_tests =.*|build_tests = false|" "$src/meson.build"
+    sed_i "s|build_tests =.*|build_tests = false|" "$src/meson.build"
 
     echo "Building glib2..."
     mkdir -p "$build"
@@ -295,7 +295,7 @@ build_guile()
 
     extract "$GUILE_ARCHIVE" "$src"
     # Export dynamic symbols from guile executable so that srfi modules work.
-    $SED_I "s|guile_LDFLAGS = .*$|& -Wl,--export-dynamic|" "$src/libguile/Makefile.in"
+    sed_i "s|guile_LDFLAGS = .*$|& -Wl,--export-dynamic|" "$src/libguile/Makefile.in"
 
     echo "Building guile..."
     mkdir -p "$build"
@@ -376,7 +376,7 @@ build_harfbuzz()
 
     extract "$HARFBUZZ_ARCHIVE" "$src"
     # Don't build test and docs
-    $SED_I "s|SUBDIRS = src util test docs|SUBDIRS = src util|" "$src/Makefile.in"
+    sed_i "s|SUBDIRS = src util test docs|SUBDIRS = src util|" "$src/Makefile.in"
 
     echo "Building harfbuzz..."
     mkdir -p "$build"
@@ -399,7 +399,7 @@ build_pango()
 
     extract "$PANGO_ARCHIVE" "$src"
     # Don't build utils, tests, tools
-    $SED_I -E "/subdir\('(utils|tests|tools)'\)/d" "$src/meson.build"
+    sed_i -E "/subdir\('(utils|tests|tools)'\)/d" "$src/meson.build"
 
     echo "Building pango..."
     mkdir -p "$build"

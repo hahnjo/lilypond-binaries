@@ -13,14 +13,20 @@ TOOLS_BIN="$TOOLS/bin"
 uname="$(uname)"
 if [ "$uname" = "Linux" ]; then
     MAKE=make
-    SED_I="sed -i"
+    sed_i()
+    (
+        sed -i "$@"
+    )
 elif [ "$uname" = "FreeBSD" ]; then
     if ! type gmake >/dev/null 2>&1; then
         echo "Please install GNU make!" >&2
         exit 1
     fi
     MAKE=gmake
-    SED_I="sed -i ''"
+    sed_i()
+    (
+        sed -i '' "$@"
+    )
 fi
 
 if [ -z "$PROCS" ]; then
