@@ -71,8 +71,10 @@ python="python$PYTHON_VERSION_MAJOR"
 cp "$PYTHON_INSTALL/bin/$python" "$LILYPOND_DIR/scripts"
 strip "$LILYPOND_DIR/scripts/$python"
 
-# Copy packages for Python.
+# Copy packages for Python ...
 cp -r "$PYTHON_INSTALL/lib/$python" "$LILYPOND_DIR/lib"
+# ... but delete tests.
+rm -r "$LILYPOND_DIR/lib/$python/test"
 
 # Move Python scripts, instead create wrappers.
 for s in $PYTHON_SCRIPTS; do
