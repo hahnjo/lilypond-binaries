@@ -295,7 +295,15 @@ build_guile()
 
     extract "$GUILE_ARCHIVE" "$src"
     # Export dynamic symbols from guile executable so that srfi modules work.
-    sed_i "s|guile_LDFLAGS = .*$|& -Wl,--export-dynamic|" "$src/libguile/Makefile.in"
+    sed_i "s|guile_LDFLAGS = .*$|& $LDFLAGS|" "$src/libguile/Makefile.in"
+
+    if [ "$uname" = "Darwin" ]; then
+        export WHOLE_ARCHIVE="-Wl,-all_load"
+        export NO_WHOLE_ARCHIVE="-Wl,-noall_load"
+    else
+        export WHOLE_ARCHIVE="-Wl,--whole-archive"
+        export NO_WHOLE_ARCHIVE="-Wl,--no-whole-archive"
+    fi
 
     echo "Building guile..."
     mkdir -p "$build"
@@ -311,7 +319,7 @@ build_guile()
         cd "$GUILE_INSTALL/lib"
         for srfi in 1-v-3 4-v-3 13-14-v-3 60-v-2; do
             lib="libguile-srfi-srfi-$srfi"
-            cc -shared -o "$lib.so" -Wl,--whole-archive "$lib.a" -Wl,--no-whole-archive
+            cc -shared -o "$lib.so" $WHOLE_ARCHIVE "$lib.a" $NO_WHOLE_ARCHIVE
         done
     ) > "$LOG/guile.log" 2>&1
 )
