@@ -27,7 +27,7 @@ build_gperf()
         cd "$build"
         "$src/configure" --prefix="$TOOLS" --disable-shared --enable-static
         $MAKE -j$PROCS && $MAKE install
-    ) > "$TOOLS/gperf.log" 2>&1 || print_failed "$TOOLS/gperf.log"
+    ) > "$TOOLS/gperf.log" 2>&1 || print_failed_and_exit "$TOOLS/gperf.log"
 )
 build_gperf
 echo ""
@@ -54,7 +54,7 @@ build_texinfo()
         "$src/configure" --prefix="$TOOLS" --disable-shared --enable-static
         $MAKE -j$PROCS
         $MAKE install
-    ) > "$TOOLS/texinfo.log" 2>&1
+    ) > "$TOOLS/texinfo.log" 2>&1 || print_failed_and_exit "$TOOLS/texinfo.log"
 )
 build_texinfo
 echo ""

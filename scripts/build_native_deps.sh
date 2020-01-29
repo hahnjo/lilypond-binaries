@@ -75,7 +75,7 @@ build_expat()
         "$src/configure" --prefix="$EXPAT_INSTALL" --disable-shared --enable-static \
             --without-xmlwf --without-examples --without-tests
         $MAKE -j$PROCS && $MAKE install
-    ) > "$LOG/expat.log" 2>&1 || print_failed "$LOG/expat.log"
+    ) > "$LOG/expat.log" 2>&1 || print_failed_and_exit "$LOG/expat.log"
 )
 
 # Build freetype2 (dependency of fontconfig)
@@ -93,7 +93,7 @@ build_freetype2()
         "$src/configure" --prefix="$FREETYPE_INSTALL" --disable-shared --enable-static \
             --with-zlib=no --with-bzip2=no --with-png=no --with-harfbuzz=no
         $MAKE -j$PROCS && $MAKE install
-    ) > "$LOG/freetype2.log" 2>&1 || print_failed "$LOG/freetype2.log"
+    ) > "$LOG/freetype2.log" 2>&1 || print_failed_and_exit "$LOG/freetype2.log"
 )
 
 # Build util-linux
@@ -111,7 +111,7 @@ build_util_linux()
         "$src/configure" --prefix="$UTIL_LINUX_INSTALL" --disable-shared --enable-static \
             --disable-all-programs --enable-libuuid
         $MAKE -j$PROCS && $MAKE install
-    ) > "$LOG/util-linux.log" 2>&1 || print_failed "$LOG/util-linux.log"
+    ) > "$LOG/util-linux.log" 2>&1 || print_failed_and_exit "$LOG/util-linux.log"
 )
 
 # Build fontconfig
@@ -140,7 +140,7 @@ build_fontconfig()
         $MAKE install
         # Patch pkgconfig file for static dependencies
         sed_i -e "s|Requires:.*|& uuid expat|" -e "/Requires.private/d" "$FONTCONFIG_INSTALL/lib/pkgconfig/fontconfig.pc"
-    ) > "$LOG/fontconfig.log" 2>&1 || print_failed "$LOG/fontconfig.log"
+    ) > "$LOG/fontconfig.log" 2>&1 || print_failed_and_exit "$LOG/fontconfig.log"
 )
 
 # Build ghostscript
@@ -161,7 +161,7 @@ build_ghostscript()
             --without-ijs --without-luratech --without-jbig2dec --without-cal \
             --disable-cups --disable-openjpeg --disable-gtk
         $MAKE -j$PROCS && $MAKE install
-    ) > "$LOG/ghostscript.log" 2>&1 || print_failed "$LOG/ghostscript.log"
+    ) > "$LOG/ghostscript.log" 2>&1 || print_failed_and_exit "$LOG/ghostscript.log"
 )
 
 # Build libffi (dependency of glib2)
@@ -178,7 +178,7 @@ build_libffi()
         cd "$build"
         "$src/configure" --prefix="$LIBFFI_INSTALL" --disable-shared --enable-static
         $MAKE -j$PROCS && $MAKE install
-    ) > "$LOG/libffi.log" 2>&1 || print_failed "$LOG/libffi.log"
+    ) > "$LOG/libffi.log" 2>&1 || print_failed_and_exit "$LOG/libffi.log"
 )
 
 # Build zlib (dependency of glib2)
@@ -195,7 +195,7 @@ build_zlib()
         cd "$build"
         "$src/configure" --prefix="$ZLIB_INSTALL" --static
         $MAKE -j$PROCS && $MAKE install
-    ) > "$LOG/zlib.log" 2>&1 || print_failed "$LOG/zlib.log"
+    ) > "$LOG/zlib.log" 2>&1 || print_failed_and_exit "$LOG/zlib.log"
 )
 
 # Build glib2
@@ -217,7 +217,7 @@ build_glib2()
             -D internal_pcre=true -D libmount=false -D xattr=false \
             "$src" "$build"
         ninja -C "$build" -j$PROCS && meson install -C "$build"
-    ) > "$LOG/glib2.log" 2>&1 || print_failed "$LOG/glib2.log"
+    ) > "$LOG/glib2.log" 2>&1 || print_failed_and_exit "$LOG/glib2.log"
 )
 
 # Build gmp (dependency of guile)
@@ -236,7 +236,7 @@ build_gmp()
         "$src/configure" --prefix="$GMP_INSTALL" --host="$(cc -dumpmachine)" \
             --disable-shared --enable-static --with-pic
         $MAKE -j$PROCS && $MAKE install
-    ) > "$LOG/gmp.log" 2>&1 || print_failed "$LOG/gmp.log"
+    ) > "$LOG/gmp.log" 2>&1 || print_failed_and_exit "$LOG/gmp.log"
 )
 
 # Build libtool (dependency of guile)
@@ -253,7 +253,7 @@ build_libtool()
         cd "$build"
         "$src/configure" --prefix="$LIBTOOL_INSTALL" --disable-shared --enable-static --with-pic
         $MAKE -j$PROCS && $MAKE install
-    ) > "$LOG/libtool.log" 2>&1 || print_failed "$LOG/libtool.log"
+    ) > "$LOG/libtool.log" 2>&1 || print_failed_and_exit "$LOG/libtool.log"
 )
 
 # Build guile
@@ -282,7 +282,7 @@ build_guile()
                 cc -shared -o "$lib.so" -Wl,--whole-archive "$lib.a" -Wl,--no-whole-archive
             done
 	)
-    ) > "$LOG/guile.log" 2>&1 || print_failed "$LOG/guile.log"
+    ) > "$LOG/guile.log" 2>&1 || print_failed_and_exit "$LOG/guile.log"
 )
 
 # Build pixman (dependency of cairo)
@@ -299,7 +299,7 @@ build_pixman()
         cd "$build"
         "$src/configure" --prefix="$PIXMAN_INSTALL" --disable-shared --enable-static
         $MAKE -j$PROCS && $MAKE install
-    ) > "$LOG/pixman.log" 2>&1 || print_failed "$LOG/pixman.log"
+    ) > "$LOG/pixman.log" 2>&1 || print_failed_and_exit "$LOG/pixman.log"
 )
 
 # Build cairo (dependency of pango)
@@ -326,7 +326,7 @@ build_cairo()
             --enable-png=no --enable-svg=no \
             --enable-interpreter=no --enable-trace=no
         $MAKE -j$PROCS && $MAKE install
-    ) > "$LOG/cairo.log" 2>&1 || print_failed "$LOG/cairo.log"
+    ) > "$LOG/cairo.log" 2>&1 || print_failed_and_exit "$LOG/cairo.log"
 )
 
 # Build harfuzz (dependency of pango)
@@ -346,7 +346,7 @@ build_harfbuzz()
         PKG_CONFIG_LIBDIR="$FREETYPE_INSTALL/lib/pkgconfig:$GLIB2_INSTALL/lib/pkgconfig" \
         "$src/configure" --prefix="$HARFBUZZ_INSTALL" --disable-shared --enable-static
         $MAKE -j$PROCS && $MAKE install
-    ) > "$LOG/harfbuzz.log" 2>&1 || print_failed "$LOG/harfbuzz.log"
+    ) > "$LOG/harfbuzz.log" 2>&1 || print_failed_and_exit "$LOG/harfbuzz.log"
 )
 
 # Build pango
@@ -377,7 +377,7 @@ build_pango()
             -D introspection=false \
             "$src" "$build"
         ninja -C "$build" -j$PROCS && meson install -C "$build"
-    ) > "$LOG/pango.log" 2>&1 || print_failed "$LOG/pango.log"
+    ) > "$LOG/pango.log" 2>&1 || print_failed_and_exit "$LOG/pango.log"
 )
 
 # Build python
@@ -394,7 +394,7 @@ build_python()
         cd "$build"
         "$src/configure" --prefix="$PYTHON_INSTALL" --disable-shared --enable-static
         $MAKE -j$PROCS && $MAKE install
-    ) > "$LOG/python.log" 2>&1 || print_failed "$LOG/python.log"
+    ) > "$LOG/python.log" 2>&1 || print_failed_and_exit "$LOG/python.log"
 )
 
 BUILD_FUNCTIONS=(
@@ -418,7 +418,7 @@ BUILD_FUNCTIONS=(
 
 for fn in ${BUILD_FUNCTIONS[@]}; do
     echo ""
-    $fn || exit 1
+    $fn
 done
 
 
