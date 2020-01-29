@@ -26,9 +26,8 @@ build_gperf()
     (
         cd "$build"
         "$src/configure" --prefix="$TOOLS" --disable-shared --enable-static
-        $MAKE -j$PROCS
-        $MAKE install
-    ) > "$TOOLS/gperf.log" 2>&1
+        $MAKE -j$PROCS && $MAKE install
+    ) > "$TOOLS/gperf.log" 2>&1 || print_failed "$TOOLS/gperf.log"
 )
 build_gperf
 echo ""

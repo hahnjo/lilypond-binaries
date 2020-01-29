@@ -76,9 +76,8 @@ build_expat()
         cd "$build"
         "$src/configure" --prefix="$EXPAT_INSTALL" --disable-shared --enable-static \
             --without-xmlwf --without-examples --without-tests
-        $MAKE -j$PROCS
-        $MAKE install
-    ) > "$LOG/expat.log" 2>&1
+        $MAKE -j$PROCS && $MAKE install
+    ) > "$LOG/expat.log" 2>&1 || print_failed "$LOG/expat.log"
 )
 build_expat
 echo ""
@@ -97,9 +96,8 @@ build_freetype2()
         cd "$build"
         "$src/configure" --prefix="$FREETYPE_INSTALL" --disable-shared --enable-static \
             --with-zlib=no --with-bzip2=no --with-png=no --with-harfbuzz=no
-        $MAKE -j$PROCS
-        $MAKE install
-    ) > "$LOG/freetype2.log" 2>&1
+        $MAKE -j$PROCS && $MAKE install
+    ) > "$LOG/freetype2.log" 2>&1 || print_failed "$LOG/freetype2.log"
 )
 build_freetype2
 echo ""
@@ -118,9 +116,8 @@ build_util_linux()
         cd "$build"
         "$src/configure" --prefix="$UTIL_LINUX_INSTALL" --disable-shared --enable-static \
             --disable-all-programs --enable-libuuid
-        $MAKE -j$PROCS
-        $MAKE install
-    ) > "$LOG/util-linux.log" 2>&1
+        $MAKE -j$PROCS && $MAKE install
+    ) > "$LOG/util-linux.log" 2>&1 || print_failed "$LOG/util-linux.log"
 )
 build_util_linux
 echo ""
@@ -151,7 +148,7 @@ build_fontconfig()
         $MAKE install
         # Patch pkgconfig file for static dependencies
         sed_i -e "s|Requires:.*|& uuid expat|" -e "/Requires.private/d" "$FONTCONFIG_INSTALL/lib/pkgconfig/fontconfig.pc"
-    ) > "$LOG/fontconfig.log" 2>&1
+    ) > "$LOG/fontconfig.log" 2>&1 || print_failed "$LOG/fontconfig.log"
 )
 build_fontconfig
 echo ""
@@ -173,9 +170,8 @@ build_ghostscript()
             --without-libidn --without-libpaper --without-libtiff --without-pdftoraster \
             --without-ijs --without-luratech --without-jbig2dec --without-cal \
             --disable-cups --disable-openjpeg --disable-gtk
-        $MAKE -j$PROCS
-        $MAKE install
-    ) > "$LOG/ghostscript.log" 2>&1
+        $MAKE -j$PROCS && $MAKE install
+    ) > "$LOG/ghostscript.log" 2>&1 || print_failed "$LOG/ghostscript.log"
 )
 build_ghostscript
 echo ""
@@ -193,9 +189,8 @@ build_libffi()
     (
         cd "$build"
         "$src/configure" --prefix="$LIBFFI_INSTALL" --disable-shared --enable-static
-        $MAKE -j$PROCS
-        $MAKE install
-    ) > "$LOG/libffi.log" 2>&1
+        $MAKE -j$PROCS && $MAKE install
+    ) > "$LOG/libffi.log" 2>&1 || print_failed "$LOG/libffi.log"
 )
 build_libffi
 echo ""
@@ -213,9 +208,8 @@ build_zlib()
     (
         cd "$build"
         "$src/configure" --prefix="$ZLIB_INSTALL" --static
-        $MAKE -j$PROCS
-        $MAKE install
-    ) > "$LOG/zlib.log" 2>&1
+        $MAKE -j$PROCS && $MAKE install
+    ) > "$LOG/zlib.log" 2>&1 || print_failed "$LOG/zlib.log"
 )
 build_zlib
 echo ""
@@ -238,9 +232,8 @@ build_glib2()
             --default-library static --auto-features=disabled \
             -D internal_pcre=true -D libmount=false -D xattr=false \
             "$src" "$build"
-        ninja -C "$build" -j$PROCS
-        meson install -C "$build"
-    ) > "$LOG/glib2.log" 2>&1
+        ninja -C "$build" -j$PROCS && meson install -C "$build"
+    ) > "$LOG/glib2.log" 2>&1 || print_failed "$LOG/glib2.log"
 )
 build_glib2
 echo ""
@@ -260,9 +253,8 @@ build_gmp()
         # gmp tries to target the specific host CPU unless --host is given...
         "$src/configure" --prefix="$GMP_INSTALL" --host="$(cc -dumpmachine)" \
             --disable-shared --enable-static --with-pic
-        $MAKE -j$PROCS
-        $MAKE install
-    ) > "$LOG/gmp.log" 2>&1
+        $MAKE -j$PROCS && $MAKE install
+    ) > "$LOG/gmp.log" 2>&1 || print_failed "$LOG/gmp.log"
 )
 build_gmp
 echo ""
@@ -280,9 +272,8 @@ build_libtool()
     (
         cd "$build"
         "$src/configure" --prefix="$LIBTOOL_INSTALL" --disable-shared --enable-static --with-pic
-        $MAKE -j$PROCS
-        $MAKE install
-    ) > "$LOG/libtool.log" 2>&1
+        $MAKE -j$PROCS && $MAKE install
+    ) > "$LOG/libtool.log" 2>&1 || print_failed "$LOG/libtool.log"
 )
 build_libtool
 echo ""
@@ -305,15 +296,15 @@ build_guile()
             --disable-error-on-warning \
             CPPFLAGS="-I$GMP_INSTALL/include -I$LIBTOOL_INSTALL/include" \
             LDFLAGS="-L$GMP_INSTALL/lib -L$LIBTOOL_INSTALL/lib" LIBS="-ldl"
-        $MAKE -j$PROCS
-        $MAKE install
-        # Build shared libraries for srfi modules.
-        cd "$GUILE_INSTALL/lib"
-        for srfi in 1-v-3 4-v-3 13-14-v-3 60-v-2; do
-            lib="libguile-srfi-srfi-$srfi"
-            cc -shared -o "$lib.so" -Wl,--whole-archive "$lib.a" -Wl,--no-whole-archive
-        done
-    ) > "$LOG/guile.log" 2>&1
+        $MAKE -j$PROCS && $MAKE install && (
+            # Build shared libraries for srfi modules.
+            cd "$GUILE_INSTALL/lib"
+            for srfi in 1-v-3 4-v-3 13-14-v-3 60-v-2; do
+                lib="libguile-srfi-srfi-$srfi"
+                cc -shared -o "$lib.so" -Wl,--whole-archive "$lib.a" -Wl,--no-whole-archive
+            done
+	)
+    ) > "$LOG/guile.log" 2>&1 || print_failed "$LOG/guile.log"
 )
 build_guile
 echo ""
@@ -331,9 +322,8 @@ build_pixman()
     (
         cd "$build"
         "$src/configure" --prefix="$PIXMAN_INSTALL" --disable-shared --enable-static
-        $MAKE -j$PROCS
-        $MAKE install
-    ) > "$LOG/pixman.log" 2>&1
+        $MAKE -j$PROCS && $MAKE install
+    ) > "$LOG/pixman.log" 2>&1 || print_failed "$LOG/pixman.log"
 )
 build_pixman
 echo ""
@@ -361,9 +351,8 @@ build_cairo()
         "$src/configure" --prefix="$CAIRO_INSTALL" --disable-shared --enable-static \
             --enable-png=no --enable-svg=no \
             --enable-interpreter=no --enable-trace=no
-        $MAKE -j$PROCS
-        $MAKE install
-    ) > "$LOG/cairo.log" 2>&1
+        $MAKE -j$PROCS && $MAKE install
+    ) > "$LOG/cairo.log" 2>&1 || print_failed "$LOG/cairo.log"
 )
 build_cairo
 echo ""
@@ -384,9 +373,8 @@ build_harfbuzz()
         cd "$build"
         PKG_CONFIG_LIBDIR="$FREETYPE_INSTALL/lib/pkgconfig:$GLIB2_INSTALL/lib/pkgconfig" \
         "$src/configure" --prefix="$HARFBUZZ_INSTALL" --disable-shared --enable-static
-        $MAKE -j$PROCS
-        $MAKE install
-    ) > "$LOG/harfbuzz.log" 2>&1
+        $MAKE -j$PROCS && $MAKE install
+    ) > "$LOG/harfbuzz.log" 2>&1 || print_failed "$LOG/harfbuzz.log"
 )
 build_harfbuzz
 echo ""
@@ -418,9 +406,8 @@ build_pango()
             --default-library static --auto-features=disabled \
             -D introspection=false \
             "$src" "$build"
-        ninja -C "$build" -j$PROCS
-        meson install -C "$build"
-    ) > "$LOG/pango.log" 2>&1
+        ninja -C "$build" -j$PROCS && meson install -C "$build"
+    ) > "$LOG/pango.log" 2>&1 || print_failed "$LOG/pango.log"
 )
 build_pango
 echo ""
@@ -438,9 +425,8 @@ build_python()
     (
         cd "$build"
         "$src/configure" --prefix="$PYTHON_INSTALL" --disable-shared --enable-static
-        $MAKE -j$PROCS
-        $MAKE install
-    ) > "$LOG/python.log" 2>&1
+        $MAKE -j$PROCS && $MAKE install
+    ) > "$LOG/python.log" 2>&1 || print_failed "$LOG/python.log"
 )
 build_python
 echo ""
