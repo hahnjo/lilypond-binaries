@@ -54,8 +54,6 @@ download "$PANGO_URL" "$PANGO_ARCHIVE"
 
 download "$PYTHON_URL" "$PYTHON_ARCHIVE"
 
-echo ""
-
 # Before building set PKG_CONFIG_LIBDIR="" to avoid pkg-config finding
 # dependencies in system directories. This doesn't work in all cases though,
 # because for example glib2 tries to just link with a known library name
@@ -79,8 +77,6 @@ build_expat()
         $MAKE -j$PROCS && $MAKE install
     ) > "$LOG/expat.log" 2>&1 || print_failed "$LOG/expat.log"
 )
-build_expat
-echo ""
 
 # Build freetype2 (dependency of fontconfig)
 build_freetype2()
@@ -99,8 +95,6 @@ build_freetype2()
         $MAKE -j$PROCS && $MAKE install
     ) > "$LOG/freetype2.log" 2>&1 || print_failed "$LOG/freetype2.log"
 )
-build_freetype2
-echo ""
 
 # Build util-linux
 build_util_linux()
@@ -119,8 +113,6 @@ build_util_linux()
         $MAKE -j$PROCS && $MAKE install
     ) > "$LOG/util-linux.log" 2>&1 || print_failed "$LOG/util-linux.log"
 )
-build_util_linux
-echo ""
 
 # Build fontconfig
 build_fontconfig()
@@ -150,8 +142,6 @@ build_fontconfig()
         sed_i -e "s|Requires:.*|& uuid expat|" -e "/Requires.private/d" "$FONTCONFIG_INSTALL/lib/pkgconfig/fontconfig.pc"
     ) > "$LOG/fontconfig.log" 2>&1 || print_failed "$LOG/fontconfig.log"
 )
-build_fontconfig
-echo ""
 
 # Build ghostscript
 build_ghostscript()
@@ -173,8 +163,6 @@ build_ghostscript()
         $MAKE -j$PROCS && $MAKE install
     ) > "$LOG/ghostscript.log" 2>&1 || print_failed "$LOG/ghostscript.log"
 )
-build_ghostscript
-echo ""
 
 # Build libffi (dependency of glib2)
 build_libffi()
@@ -192,8 +180,6 @@ build_libffi()
         $MAKE -j$PROCS && $MAKE install
     ) > "$LOG/libffi.log" 2>&1 || print_failed "$LOG/libffi.log"
 )
-build_libffi
-echo ""
 
 # Build zlib (dependency of glib2)
 build_zlib()
@@ -211,8 +197,6 @@ build_zlib()
         $MAKE -j$PROCS && $MAKE install
     ) > "$LOG/zlib.log" 2>&1 || print_failed "$LOG/zlib.log"
 )
-build_zlib
-echo ""
 
 # Build glib2
 build_glib2()
@@ -235,8 +219,6 @@ build_glib2()
         ninja -C "$build" -j$PROCS && meson install -C "$build"
     ) > "$LOG/glib2.log" 2>&1 || print_failed "$LOG/glib2.log"
 )
-build_glib2
-echo ""
 
 # Build gmp (dependency of guile)
 build_gmp()
@@ -256,8 +238,6 @@ build_gmp()
         $MAKE -j$PROCS && $MAKE install
     ) > "$LOG/gmp.log" 2>&1 || print_failed "$LOG/gmp.log"
 )
-build_gmp
-echo ""
 
 # Build libtool (dependency of guile)
 build_libtool()
@@ -275,8 +255,6 @@ build_libtool()
         $MAKE -j$PROCS && $MAKE install
     ) > "$LOG/libtool.log" 2>&1 || print_failed "$LOG/libtool.log"
 )
-build_libtool
-echo ""
 
 # Build guile
 build_guile()
@@ -306,8 +284,6 @@ build_guile()
 	)
     ) > "$LOG/guile.log" 2>&1 || print_failed "$LOG/guile.log"
 )
-build_guile
-echo ""
 
 # Build pixman (dependency of cairo)
 build_pixman()
@@ -325,8 +301,6 @@ build_pixman()
         $MAKE -j$PROCS && $MAKE install
     ) > "$LOG/pixman.log" 2>&1 || print_failed "$LOG/pixman.log"
 )
-build_pixman
-echo ""
 
 # Build cairo (dependency of pango)
 build_cairo()
@@ -354,8 +328,6 @@ build_cairo()
         $MAKE -j$PROCS && $MAKE install
     ) > "$LOG/cairo.log" 2>&1 || print_failed "$LOG/cairo.log"
 )
-build_cairo
-echo ""
 
 # Build harfuzz (dependency of pango)
 build_harfbuzz()
@@ -376,8 +348,6 @@ build_harfbuzz()
         $MAKE -j$PROCS && $MAKE install
     ) > "$LOG/harfbuzz.log" 2>&1 || print_failed "$LOG/harfbuzz.log"
 )
-build_harfbuzz
-echo ""
 
 # Build pango
 build_pango()
@@ -409,8 +379,6 @@ build_pango()
         ninja -C "$build" -j$PROCS && meson install -C "$build"
     ) > "$LOG/pango.log" 2>&1 || print_failed "$LOG/pango.log"
 )
-build_pango
-echo ""
 
 # Build python
 build_python()
@@ -428,8 +396,31 @@ build_python()
         $MAKE -j$PROCS && $MAKE install
     ) > "$LOG/python.log" 2>&1 || print_failed "$LOG/python.log"
 )
-build_python
-echo ""
+
+BUILD_FUNCTIONS=(
+    build_expat
+    build_freetype2
+    build_util_linux
+    build_fontconfig
+    build_ghostscript
+    build_libffi
+    build_zlib
+    build_glib2
+    build_gmp
+    build_libtool
+    build_guile
+    build_pixman
+    build_cairo
+    build_harfbuzz
+    build_pango
+    build_python
+)
+
+for fn in ${BUILD_FUNCTIONS[@]}; do
+    echo ""
+    $fn || exit 1
+done
+
 
 echo "DONE"
 exit 0
