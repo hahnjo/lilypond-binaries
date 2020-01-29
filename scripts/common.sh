@@ -17,6 +17,12 @@ if [ "$uname" = "Linux" ]; then
     (
         sed -i "$@"
     )
+elif [ "$uname" = "Darwin" ]; then
+    MAKE=make
+    sed_i()
+    (
+        sed -i '' "$@"
+    )
 elif [ "$uname" = "FreeBSD" ]; then
     if ! type gmake >/dev/null 2>&1; then
         echo "Please install GNU make!" >&2
