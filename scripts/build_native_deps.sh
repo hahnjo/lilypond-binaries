@@ -298,8 +298,8 @@ build_guile()
     sed_i "s|guile_LDFLAGS = .*$|& $LDFLAGS|" "$src/libguile/Makefile.in"
 
     if [ "$uname" = "Darwin" ]; then
-        export WHOLE_ARCHIVE="-Wl,-all_load"
-        export NO_WHOLE_ARCHIVE="-Wl,-noall_load"
+        export WHOLE_ARCHIVE="-Wl,-all_load -Wl,-undefined,dynamic_lookup"
+        export NO_WHOLE_ARCHIVE=""
     else
         export WHOLE_ARCHIVE="-Wl,--whole-archive"
         export NO_WHOLE_ARCHIVE="-Wl,--no-whole-archive"
@@ -317,7 +317,13 @@ build_guile()
         $MAKE install
         # Build shared libraries for srfi modules.
         cd "$GUILE_INSTALL/lib"
-        for srfi in 1-v-3 4-v-3 13-14-v-3 60-v-2; do
+        SRFI_MODULES=(
+            1-v-3     # List library.
+            4-v-3     # Homogeneous numeric vector datatypes.
+            13-14-v-3 # String & character set library.
+            60-v-2    # Integers as bits.
+        )
+        for srfi in ${SRFI_MODULES[@]}; do
             lib="libguile-srfi-srfi-$srfi"
             cc -shared -o "$lib.so" $WHOLE_ARCHIVE "$lib.a" $NO_WHOLE_ARCHIVE
         done
