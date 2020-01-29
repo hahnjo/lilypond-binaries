@@ -62,9 +62,9 @@ mkdir -p "$LILYPOND_BUILD"
     GHOSTSCRIPT="$GHOSTSCRIPT_INSTALL/bin/gs" \
     GUILE="$GUILE_INSTALL/bin/guile" GUILE_CONFIG="$GUILE_INSTALL/bin/guile-config" \
     PYTHON="$PYTHON_INSTALL/bin/python" PYTHON_CONFIG="$PYTHON_INSTALL/bin/python-config" \
-
     "$LILYPOND_SRC/configure" --prefix="$LILYPOND_INSTALL" --disable-documentation \
         --enable-static-gxx --enable-relocation
 
-    $MAKE -j$PROCS && $MAKE install
-) > "$LILYPOND/build.log" 2>&1 || print_failed "$LILYPOND_BUILD/build.log"
+    $MAKE -j$PROCS
+    $MAKE install
+) > "$LILYPOND/build.log" 2>&1 || print_failed_and_exit "$LILYPOND/build.log"
