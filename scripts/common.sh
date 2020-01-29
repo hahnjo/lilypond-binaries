@@ -8,7 +8,6 @@ DOWNLOADS="$ROOT/downloads"
 TOOLS="$ROOT/tools"
 TOOLS_BIN="$TOOLS/bin"
 
-
 # Detect environment.
 uname="$(uname)"
 if [ "$uname" = "Linux" ]; then
@@ -33,6 +32,12 @@ elif [ "$uname" = "FreeBSD" ]; then
     (
         sed -i '' "$@"
     )
+fi
+
+if [ $(uname) = "Darwin" ]; then
+    export LDFLAGS="-Wl,-export_dynamic"
+else
+    export LDFLAGS="-Wl,--export-dynamic"
 fi
 
 if [ -z "$PROCS" ]; then

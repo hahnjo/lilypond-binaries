@@ -36,7 +36,6 @@ mkdir -p "$LILYPOND_BUILD"
 
     # Load shared srfi modules.
     export LD_LIBRARY_PATH="$GUILE_INSTALL/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-    export LDFLAGS="-Wl,--export-dynamic"
 
     pkg_config_libdir="$CAIRO_INSTALL/lib/pkgconfig"
     pkg_config_libdir="$pkg_config_libdir:$EXPAT_INSTALL/lib/pkgconfig"
