@@ -54,6 +54,8 @@ download "$PANGO_URL" "$PANGO_ARCHIVE"
 
 download "$PYTHON_URL" "$PYTHON_ARCHIVE"
 
+echo ""
+
 # Before building set PKG_CONFIG_LIBDIR="" to avoid pkg-config finding
 # dependencies in system directories. This doesn't work in all cases though,
 # because for example glib2 tries to just link with a known library name
@@ -413,22 +415,28 @@ build_python()
 
 
 # Run build functions.
-build_expat
-build_freetype2
-build_util_linux
-build_fontconfig
-build_ghostscript
-build_libffi
-build_zlib
-build_glib2
-build_gmp
-build_libtool
-build_guile
-build_pixman
-build_cairo
-build_harfbuzz
-build_pango
-build_python
+fns=""
+fns="$fns build_expat"
+fns="$fns build_freetype2"
+fns="$fns build_util_linux"
+fns="$fns build_fontconfig"
+fns="$fns build_ghostscript"
+fns="$fns build_libffi"
+fns="$fns build_zlib"
+fns="$fns build_glib2"
+fns="$fns build_gmp"
+fns="$fns build_libtool"
+fns="$fns build_guile"
+fns="$fns build_pixman"
+fns="$fns build_cairo"
+fns="$fns build_harfbuzz"
+fns="$fns build_pango"
+fns="$fns build_python"
+
+for fn in $fns; do
+    $fn
+    echo
+done
 
 
 echo "DONE"
