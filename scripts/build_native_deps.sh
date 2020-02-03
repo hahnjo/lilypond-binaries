@@ -397,6 +397,13 @@ build_harfbuzz()
     # Don't build test and docs
     sed_i "s|SUBDIRS = src util test docs|SUBDIRS = src util|" "$src/Makefile.in"
 
+    if [ "$uname" = "Darwin" ]; then
+        export LDFLAGS="-framework Foundation"
+
+        # TODO: This feels fishy. Investigate further.
+        sed_i "s/@HAVE_CORETEXT_TRUE@//" "$src/src/Makefile.in"
+    fi
+
     echo "Building harfbuzz..."
     mkdir -p "$build"
     (
