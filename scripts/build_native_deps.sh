@@ -97,7 +97,7 @@ build_freetype2()
             --with-zlib=no --with-bzip2=no --with-png=no --with-harfbuzz=no
         $MAKE -j$PROCS
         $MAKE install
-    ) > "$LOG/freetype2.log" 2>&1 || print_failed_and_exit "$LOG/freetype2.log"
+    ) > "$LOG/freetype2.log" 2>&1 || print_failed_and_exit "$LOG/freetype2.log"
 )
 
 # Build util-linux
@@ -246,7 +246,7 @@ build_gmp()
             --disable-shared --enable-static --with-pic
         $MAKE -j$PROCS
         $MAKE install
-    ) > "$LOG/gmp.log" 2>&1 || print_failed_and_exit "$LOG/gmp.log"
+    ) > "$LOG/gmp.log" 2>&1 || print_failed_and_exit "$LOG/gmp.log"
 )
 
 # Build libtool (dependency of guile)
@@ -264,7 +264,7 @@ build_libtool()
         "$src/configure" --prefix="$LIBTOOL_INSTALL" --disable-shared --enable-static --with-pic
         $MAKE -j$PROCS
         $MAKE install
-    ) > "$LOG/libtool.log" 2>&1 || print_failed_and_exit "$LOG/libtool.log"
+    ) > "$LOG/libtool.log" 2>&1 || print_failed_and_exit "$LOG/libtool.log"
 )
 
 # Build guile
