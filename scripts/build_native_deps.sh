@@ -339,6 +339,11 @@ build_pixman()
     local build="$BUILD/$PIXMAN_DIR"
 
     extract "$PIXMAN_ARCHIVE" "$src"
+    if [ "$uname" = "Darwin" ]; then
+        sed_i -E \
+            "/^(scaling_helpers|region)_test_OBJECTS.*$/ s/$/ utils.\$(OBJEXT)/" \
+            "$src/test/Makefile.in"
+    fi
 
     echo "Building pixman..."
     mkdir -p "$build"
