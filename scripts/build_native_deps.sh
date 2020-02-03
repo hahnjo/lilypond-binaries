@@ -411,29 +411,24 @@ build_python()
     ) > "$LOG/python.log" 2>&1 || print_failed_and_exit "$LOG/python.log"
 )
 
-BUILD_FUNCTIONS=(
-    build_expat
-    build_freetype2
-    build_util_linux
-    build_fontconfig
-    build_ghostscript
-    build_libffi
-    build_zlib
-    build_glib2
-    build_gmp
-    build_libtool
-    build_guile
-    build_pixman
-    build_cairo
-    build_harfbuzz
-    build_pango
-    build_python
-)
 
-for fn in ${BUILD_FUNCTIONS[@]}; do
-    echo ""
-    $fn
-done
+# Run build functions.
+build_expat
+build_freetype2
+build_util_linux
+build_fontconfig
+build_ghostscript
+build_libffi
+build_zlib
+build_glib2
+build_gmp
+build_libtool
+build_guile
+build_pixman
+build_cairo
+build_harfbuzz
+build_pango
+build_python
 
 
 echo "DONE"

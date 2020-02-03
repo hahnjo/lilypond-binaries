@@ -15,7 +15,7 @@ LILYPOND_SRC="$LILYPOND/src"
 LILYPOND_BUILD="$LILYPOND/build"
 LILYPOND_INSTALL="$LILYPOND/install"
 
-if [[ $VERBOSE -ne "0" ]]; then
+if [ ! $VERBOSE = 0 ]; then
     echo "Environment variables:"
     echo "LILYPOND=$LILYPOND"
     echo "LILYPOND_SRC=$LILYPOND_SRC"
