@@ -78,10 +78,8 @@ build_expat()
             --without-xmlwf --without-examples --without-tests
         $MAKE -j$PROCS
         $MAKE install
-    ) > "$LOG/expat.log" 2>&1
+    ) > "$LOG/expat.log" 2>&1 || print_failed_and_exit "$LOG/expat.log"
 )
-build_expat
-echo ""
 
 # Build freetype2 (dependency of fontconfig)
 build_freetype2()
@@ -99,10 +97,8 @@ build_freetype2()
             --with-zlib=no --with-bzip2=no --with-png=no --with-harfbuzz=no
         $MAKE -j$PROCS
         $MAKE install
-    ) > "$LOG/freetype2.log" 2>&1
+    ) > "$LOG/freetype2.log" 2>&1 || print_failed_and_exit "$LOG/freetype2.log"
 )
-build_freetype2
-echo ""
 
 # Build util-linux
 build_util_linux()
@@ -120,10 +116,8 @@ build_util_linux()
             --disable-all-programs --enable-libuuid
         $MAKE -j$PROCS
         $MAKE install
-    ) > "$LOG/util-linux.log" 2>&1
+    ) > "$LOG/util-linux.log" 2>&1 || print_failed_and_exit "$LOG/util-linux.log"
 )
-build_util_linux
-echo ""
 
 # Build fontconfig
 build_fontconfig()
@@ -151,10 +145,8 @@ build_fontconfig()
         $MAKE install
         # Patch pkgconfig file for static dependencies
         sed_i -e "s|Requires:.*|& uuid expat|" -e "/Requires.private/d" "$FONTCONFIG_INSTALL/lib/pkgconfig/fontconfig.pc"
-    ) > "$LOG/fontconfig.log" 2>&1
+    ) > "$LOG/fontconfig.log" 2>&1 || print_failed_and_exit "$LOG/fontconfig.log"
 )
-build_fontconfig
-echo ""
 
 # Build ghostscript
 build_ghostscript()
@@ -175,10 +167,8 @@ build_ghostscript()
             --disable-cups --disable-openjpeg --disable-gtk
         $MAKE -j$PROCS
         $MAKE install
-    ) > "$LOG/ghostscript.log" 2>&1
+    ) > "$LOG/ghostscript.log" 2>&1 || print_failed_and_exit "$LOG/ghostscript.log"
 )
-build_ghostscript
-echo ""
 
 # Build libffi (dependency of glib2)
 build_libffi()
@@ -195,10 +185,8 @@ build_libffi()
         "$src/configure" --prefix="$LIBFFI_INSTALL" --disable-shared --enable-static
         $MAKE -j$PROCS
         $MAKE install
-    ) > "$LOG/libffi.log" 2>&1
+    ) > "$LOG/libffi.log" 2>&1 || print_failed_and_exit "$LOG/libffi.log"
 )
-build_libffi
-echo ""
 
 # Build zlib (dependency of glib2)
 build_zlib()
@@ -215,10 +203,8 @@ build_zlib()
         "$src/configure" --prefix="$ZLIB_INSTALL" --static
         $MAKE -j$PROCS
         $MAKE install
-    ) > "$LOG/zlib.log" 2>&1
+    ) > "$LOG/zlib.log" 2>&1 || print_failed_and_exit "$LOG/zlib.log"
 )
-build_zlib
-echo ""
 
 # Build glib2
 build_glib2()
@@ -240,10 +226,8 @@ build_glib2()
             "$src" "$build"
         ninja -C "$build" -j$PROCS
         meson install -C "$build"
-    ) > "$LOG/glib2.log" 2>&1
+    ) > "$LOG/glib2.log" 2>&1 || print_failed_and_exit "$LOG/glib2.log"
 )
-build_glib2
-echo ""
 
 # Build gmp (dependency of guile)
 build_gmp()
@@ -262,10 +246,8 @@ build_gmp()
             --disable-shared --enable-static --with-pic
         $MAKE -j$PROCS
         $MAKE install
-    ) > "$LOG/gmp.log" 2>&1
+    ) > "$LOG/gmp.log" 2>&1 || print_failed_and_exit "$LOG/gmp.log"
 )
-build_gmp
-echo ""
 
 # Build libtool (dependency of guile)
 build_libtool()
@@ -282,10 +264,8 @@ build_libtool()
         "$src/configure" --prefix="$LIBTOOL_INSTALL" --disable-shared --enable-static --with-pic
         $MAKE -j$PROCS
         $MAKE install
-    ) > "$LOG/libtool.log" 2>&1
+    ) > "$LOG/libtool.log" 2>&1 || print_failed_and_exit "$LOG/libtool.log"
 )
-build_libtool
-echo ""
 
 # Build guile
 build_guile()
@@ -313,10 +293,8 @@ build_guile()
             lib="libguile-srfi-srfi-$srfi"
             cc -shared -o "$lib.so" -Wl,--whole-archive "$lib.a" -Wl,--no-whole-archive
         done
-    ) > "$LOG/guile.log" 2>&1
+    ) > "$LOG/guile.log" 2>&1 || print_failed_and_exit "$LOG/guile.log"
 )
-build_guile
-echo ""
 
 # Build pixman (dependency of cairo)
 build_pixman()
@@ -333,10 +311,8 @@ build_pixman()
         "$src/configure" --prefix="$PIXMAN_INSTALL" --disable-shared --enable-static
         $MAKE -j$PROCS
         $MAKE install
-    ) > "$LOG/pixman.log" 2>&1
+    ) > "$LOG/pixman.log" 2>&1 || print_failed_and_exit "$LOG/pixman.log"
 )
-build_pixman
-echo ""
 
 # Build cairo (dependency of pango)
 build_cairo()
@@ -363,10 +339,8 @@ build_cairo()
             --enable-interpreter=no --enable-trace=no
         $MAKE -j$PROCS
         $MAKE install
-    ) > "$LOG/cairo.log" 2>&1
+    ) > "$LOG/cairo.log" 2>&1 || print_failed_and_exit "$LOG/cairo.log"
 )
-build_cairo
-echo ""
 
 # Build harfuzz (dependency of pango)
 build_harfbuzz()
@@ -386,10 +360,8 @@ build_harfbuzz()
         "$src/configure" --prefix="$HARFBUZZ_INSTALL" --disable-shared --enable-static
         $MAKE -j$PROCS
         $MAKE install
-    ) > "$LOG/harfbuzz.log" 2>&1
+    ) > "$LOG/harfbuzz.log" 2>&1 || print_failed_and_exit "$LOG/harfbuzz.log"
 )
-build_harfbuzz
-echo ""
 
 # Build pango
 build_pango()
@@ -420,10 +392,8 @@ build_pango()
             "$src" "$build"
         ninja -C "$build" -j$PROCS
         meson install -C "$build"
-    ) > "$LOG/pango.log" 2>&1
+    ) > "$LOG/pango.log" 2>&1 || print_failed_and_exit "$LOG/pango.log"
 )
-build_pango
-echo ""
 
 # Build python
 build_python()
@@ -440,10 +410,34 @@ build_python()
         "$src/configure" --prefix="$PYTHON_INSTALL" --disable-shared --enable-static
         $MAKE -j$PROCS
         $MAKE install
-    ) > "$LOG/python.log" 2>&1
+    ) > "$LOG/python.log" 2>&1 || print_failed_and_exit "$LOG/python.log"
 )
-build_python
-echo ""
+
+
+# Run build functions.
+fns=""
+fns="$fns build_expat"
+fns="$fns build_freetype2"
+fns="$fns build_util_linux"
+fns="$fns build_fontconfig"
+fns="$fns build_ghostscript"
+fns="$fns build_libffi"
+fns="$fns build_zlib"
+fns="$fns build_glib2"
+fns="$fns build_gmp"
+fns="$fns build_libtool"
+fns="$fns build_guile"
+fns="$fns build_pixman"
+fns="$fns build_cairo"
+fns="$fns build_harfbuzz"
+fns="$fns build_pango"
+fns="$fns build_python"
+
+for fn in $fns; do
+    $fn
+    echo
+done
+
 
 echo "DONE"
 exit 0

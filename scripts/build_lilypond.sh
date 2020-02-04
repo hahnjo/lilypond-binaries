@@ -3,7 +3,7 @@
 set -e
 
 if [ -z "$LILYPOND_TAR" ]; then
-    echo "Point LILYPOND_TAR to lilypond tarball" >&2
+    echo "Point LILYPOND_TAR to LilyPond tarball" >&2
     exit 1
 fi
 
@@ -14,6 +14,15 @@ LILYPOND="$ROOT/lilypond"
 LILYPOND_SRC="$LILYPOND/src"
 LILYPOND_BUILD="$LILYPOND/build"
 LILYPOND_INSTALL="$LILYPOND/install"
+
+if [ ! $VERBOSE = 0 ]; then
+    echo "Environment variables:"
+    echo "LILYPOND=$LILYPOND"
+    echo "LILYPOND_SRC=$LILYPOND_SRC"
+    echo "LILYPOND_BUILD=$LILYPOND_BUILD"
+    echo "LILYPOND_INSTALL=$LILYPOND_INSTALL"
+    echo ""
+fi
 
 echo "Extracting '$LILYPOND_TAR'..."
 mkdir -p "$LILYPOND_SRC"
@@ -55,6 +64,7 @@ mkdir -p "$LILYPOND_BUILD"
     PYTHON="$PYTHON_INSTALL/bin/python" PYTHON_CONFIG="$PYTHON_INSTALL/bin/python-config" \
     "$LILYPOND_SRC/configure" --prefix="$LILYPOND_INSTALL" --disable-documentation \
         --enable-static-gxx --enable-relocation
+
     $MAKE -j$PROCS
     $MAKE install
-) > "$LILYPOND/build.log" 2>&1
+) > "$LILYPOND/build.log" 2>&1 || print_failed_and_exit "$LILYPOND/build.log"

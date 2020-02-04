@@ -55,6 +55,12 @@ download()
     curl --silent --location "$url" --output "$download_file"
 )
 
+print_failed_and_exit()
+(
+    echo "FAILED: See $1 for more information"
+    exit 1
+)
+
 extract()
 (
     local file="$1"
