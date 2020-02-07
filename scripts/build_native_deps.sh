@@ -19,11 +19,13 @@ set -e
 #    * libffi
 #    * libtool
 #    * libunistring
+#      * libiconv
 #  * pango
 #    * cairo
 #      * fontconfig
 #      * freetype2
 #      * pixman
+#      * zlib
 #    * glib2
 #    * harfbuzz
 #  * python (version 2.7)
@@ -33,6 +35,13 @@ set -e
 
 LOG="$DEPENDENCIES/log"
 mkdir -p "$LOG"
+
+NATIVE_TARGET="$(cc -dumpmachine)"
+if [ -z "$CONFIGURE_HOST" ]; then
+    # Use default native machine as host. Especially important for gmp which
+    # tries to target the specific host CPU unless --host is given...
+    CONFIGURE_HOST="--host=$NATIVE_TARGET"
+fi
 
 echo "Downloading source code..."
 download "$EXPAT_URL" "$EXPAT_ARCHIVE"
@@ -49,6 +58,7 @@ download "$GLIB2_URL" "$GLIB2_ARCHIVE"
 download "$GC_URL" "$GC_ARCHIVE"
 download "$GMP_URL" "$GMP_ARCHIVE"
 download "$LIBTOOL_URL" "$LIBTOOL_ARCHIVE"
+download "$LIBICONV_URL" "$LIBICONV_ARCHIVE"
 download "$LIBUNISTRING_URL" "$LIBUNISTRING_ARCHIVE"
 download "$GUILE_URL" "$GUILE_ARCHIVE"
 
@@ -79,7 +89,8 @@ build_expat()
     mkdir -p "$build"
     (
         cd "$build"
-        "$src/configure" --prefix="$EXPAT_INSTALL" --disable-shared --enable-static \
+        "$src/configure" $CONFIGURE_HOST --prefix="$EXPAT_INSTALL" \
+            --disable-shared --enable-static \
             --without-xmlwf --without-examples --without-tests
         $MAKE -j$PROCS
         $MAKE install
@@ -99,7 +110,8 @@ build_freetype2()
     mkdir -p "$build"
     (
         cd "$build"
-        "$src/configure" --prefix="$FREETYPE_INSTALL" --disable-shared --enable-static \
+        "$src/configure" $CONFIGURE_HOST --prefix="$FREETYPE_INSTALL" \
+            --disable-shared --enable-static \
             --with-zlib=no --with-bzip2=no --with-png=no --with-harfbuzz=no
         $MAKE -j$PROCS
         $MAKE install
@@ -119,7 +131,8 @@ build_util_linux()
     mkdir -p "$build"
     (
         cd "$build"
-        "$src/configure" --prefix="$UTIL_LINUX_INSTALL" --disable-shared --enable-static \
+        "$src/configure" $CONFIGURE_HOST --prefix="$UTIL_LINUX_INSTALL" \
+            --disable-shared --enable-static \
             --disable-all-programs --enable-libuuid
         $MAKE -j$PROCS
         $MAKE install
@@ -147,8 +160,8 @@ build_fontconfig()
         pkg_config_libdir="$EXPAT_INSTALL/lib/pkgconfig:$FREETYPE_INSTALL/lib/pkgconfig"
         pkg_config_libdir="$pkg_config_libdir:$UTIL_LINUX_INSTALL/lib/pkgconfig"
         PKG_CONFIG_LIBDIR="$pkg_config_libdir" \
-        "$src/configure" --prefix="$FONTCONFIG_INSTALL" --disable-shared --enable-static \
-            --disable-docs
+        "$src/configure" $CONFIGURE_HOST --prefix="$FONTCONFIG_INSTALL" \
+            --disable-shared --enable-static --disable-docs
         $MAKE -j$PROCS
         $MAKE install
 
@@ -166,16 +179,34 @@ build_ghostscript()
     local build="$BUILD/$GHOSTSCRIPT_DIR"
 
     extract "$GHOSTSCRIPT_ARCHIVE" "$src"
+    if [ -n "$MINGW_CROSS" ]; then
+        # Do not pass -rdynamic
+        sed_i 's|DYNAMIC_LIBS="-rdynamic"|DYNAMIC_LIBS=""|g' "$src/configure"
+        # Fix invocation of configure for AUX
+        sed_i 's|../\$0|\$0|' "$src/configure"
+        # Remove function call that is win32 specific
+        sed_i 's|gp_local_arg_encoding_get_codepoint|NULL|g' "$src/psi/psapi.c"
+    fi
 
     echo "Building ghostscript..."
     mkdir -p "$build"
     (
         cd "$build"
+
+        local gs_extra_flags=""
+        if [ -n "$MINGW_CROSS" ]; then
+            # Pass some extra flags to configure.
+            local gs_extra_flags="--build=$NATIVE_TARGET --with-exe-ext=.exe "
+            local gs_extra_flags="$gs_extra_flags --with-arch_h=$src/arch/windows-x64-msvc.h"
+            local gs_extra_flags="$gs_extra_flags CCAUX=cc CFLAGS=-DHAVE_SYS_TIMES_H=0 CFLAGSAUX= "
+        fi
+
         PKG_CONFIG_LIBDIR="$FONTCONFIG_INSTALL/lib/pkgconfig:$FREETYPE_INSTALL/lib/pkgconfig" \
-        "$src/configure" --prefix="$GHOSTSCRIPT_INSTALL" --disable-dynamic --with-drivers=PS \
+        "$src/configure" $CONFIGURE_HOST --prefix="$GHOSTSCRIPT_INSTALL" \
+            --disable-dynamic --with-drivers=PS \
             --without-libidn --without-libpaper --without-libtiff --without-pdftoraster \
             --without-ijs --without-luratech --without-jbig2dec --without-cal \
-            --disable-cups --disable-openjpeg --disable-gtk
+            --disable-cups --disable-openjpeg --disable-gtk $gs_extra_flags
         $MAKE -j$PROCS
         $MAKE install
     ) > "$LOG/ghostscript.log" 2>&1 &
@@ -194,7 +225,8 @@ build_libffi()
     mkdir -p "$build"
     (
         cd "$build"
-        "$src/configure" --prefix="$LIBFFI_INSTALL" --disable-shared --enable-static
+        "$src/configure" $CONFIGURE_HOST --prefix="$LIBFFI_INSTALL" \
+            --disable-shared --enable-static
         $MAKE -j$PROCS
         $MAKE install
     ) > "$LOG/libffi.log" 2>&1 &
@@ -208,11 +240,21 @@ build_zlib()
     local build="$BUILD/$ZLIB_DIR"
 
     extract "$ZLIB_ARCHIVE" "$src"
+    if [ -n "$MINGW_CROSS" ]; then
+        # Enable cross-compilation for mingw.
+        sed_i 's|leave 1||g' "$src/configure"
+    fi
 
     echo "Building zlib..."
     mkdir -p "$build"
     (
         cd "$build"
+
+        if [ -n "$MINGW_CROSS" ]; then
+            # Enable cross compilation
+            export CHOST=$MINGW_TARGET
+        fi
+
         "$src/configure" --prefix="$ZLIB_INSTALL" --static
         $MAKE -j$PROCS
         $MAKE install
@@ -229,15 +271,28 @@ build_glib2()
     extract "$GLIB2_ARCHIVE" "$src"
     # Don't build tests
     sed_i "s|build_tests =.*|build_tests = false|" "$src/meson.build"
+    # Don't build gio, fuzzing
+    sed_i -E "/subdir\('(gio|fuzzing)'\)/d" "$src/meson.build"
+    # Don't build gobject-query
+    sed_i "/gobject-query/,+3d" "$src/gobject/meson.build"
 
     echo "Building glib2..."
     mkdir -p "$build"
     (
+        local glib2_library="static"
+        local glib2_extra_flags=""
+        if [ -n "$MINGW_CROSS" ]; then
+            # The libraries rely on DllMain which doesn't work with static.
+            local glib2_library="shared"
+            # Pass some extra flags to meson.
+            local glib2_extra_flags="$MESON_CROSS_ARG"
+        fi
+
         PKG_CONFIG_LIBDIR="$LIBFFI_INSTALL/lib/pkgconfig:$ZLIB_INSTALL/lib/pkgconfig" \
         meson setup --prefix "$GLIB2_INSTALL" --libdir=lib --buildtype plain \
-            --default-library static --auto-features=disabled \
+            --default-library $glib2_library --auto-features=disabled \
             -D internal_pcre=true -D libmount=false -D xattr=false \
-            "$src" "$build"
+            $glib2_extra_flags "$src" "$build"
         ninja -C "$build" -j$PROCS
         meson install -C "$build"
     ) > "$LOG/glib2.log" 2>&1 &
@@ -256,7 +311,7 @@ build_gc()
     mkdir -p "$build"
     (
         cd "$build"
-        "$src/configure" --prefix="$GC_INSTALL" \
+        "$src/configure" $CONFIGURE_HOST --prefix="$GC_INSTALL" \
             --disable-shared --enable-static --with-pic \
             --disable-threads --disable-docs
         $MAKE -j$PROCS
@@ -277,9 +332,15 @@ build_gmp()
     mkdir -p "$build"
     (
         cd "$build"
-        # gmp tries to target the specific host CPU unless --host is given...
-        "$src/configure" --prefix="$GMP_INSTALL" --host="$(cc -dumpmachine)" \
-            --disable-shared --enable-static --with-pic
+
+        local gmp_extra_flags=""
+        if [ -n "$MINGW_CROSS" ]; then
+            # Pass some extra flags to configure.
+            local gmp_extra_flags="CC_FOR_BUILD=cc "
+        fi
+
+        "$src/configure" $CONFIGURE_HOST --prefix="$GMP_INSTALL" \
+            --disable-shared --enable-static --with-pic $gmp_extra_flags
         $MAKE -j$PROCS
         $MAKE install
     ) > "$LOG/gmp.log" 2>&1 &
@@ -298,11 +359,32 @@ build_libtool()
     mkdir -p "$build"
     (
         cd "$build"
-        "$src/configure" --prefix="$LIBTOOL_INSTALL" --disable-shared --enable-static --with-pic
+        "$src/configure" $CONFIGURE_HOST --prefix="$LIBTOOL_INSTALL" \
+            --disable-shared --enable-static --with-pic
         $MAKE -j$PROCS
         $MAKE install
     ) > "$LOG/libtool.log" 2>&1 &
     wait $! || print_failed_and_exit "$LOG/libtool.log"
+)
+
+# Build libiconv (dependency of libunistring)
+build_libiconv()
+(
+    local src="$SRC/$LIBICONV_DIR"
+    local build="$BUILD/$LIBICONV_DIR"
+
+    extract "$LIBICONV_ARCHIVE" "$src"
+
+    echo "Building libiconv..."
+    mkdir -p "$build"
+    (
+        cd "$build"
+        "$src/configure" $CONFIGURE_HOST --prefix="$LIBICONV_INSTALL" \
+            --disable-shared --enable-static
+        $MAKE -j$PROCS
+        $MAKE install
+    ) > "$LOG/libiconv.log" 2>&1 &
+    wait $! || print_failed_and_exit "$LOG/libiconv.log"
 )
 
 # Build libunistring (dependency of guile)
@@ -317,8 +399,9 @@ build_libunistring()
     mkdir -p "$build"
     (
         cd "$build"
-        "$src/configure" --prefix="$LIBUNISTRING_INSTALL" \
-            --disable-shared --enable-static
+        "$src/configure" $CONFIGURE_HOST --prefix="$LIBUNISTRING_INSTALL" \
+            --disable-shared --enable-static \
+            --with-libiconv-prefix="$LIBICONV_INSTALL"
         $MAKE -j$PROCS
         $MAKE install
     ) > "$LOG/libunistring.log" 2>&1 &
@@ -332,16 +415,46 @@ build_guile()
     local build="$BUILD/$GUILE_DIR"
 
     extract "$GUILE_ARCHIVE" "$src"
+    if [ -n "$MINGW_CROSS" ]; then
+        # Remove SCM_IMPORT from source file for guile executable, leads to
+        # linking errors.
+        sed_i "/SCM_IMPORT/d" "$src/libguile/guile.c"
+
+        # Fix compilation errors:
+        #  * linking error
+        sed_i "/gethostname_used_without_requesting_/d" "$src/lib/unistd.in.h"
+        #  * different header on mingw
+        sed_i "s|sys/select.h|winsock2.h|" "$src/libguile/iselect.h"
+        #  * different typedef on mingw
+        sed_i "s| sigset_t| _sigset_t|g" "$src/libguile/null-threads.h"
+        #  * missing function on mingw
+        sed_i "s|return sigprocmask.*|return 0;|" "$src/libguile/null-threads.h"
+        #  * error in cmath when using ::copysign
+        sed_i "/copysign/d" "$src/libguile/numbers.h"
+        #  * "conflicting types".
+        sed_i "s|int start_child|pid_t start_child|" "$src/libguile/posix-w32.h"
+    fi
 
     echo "Building guile..."
     mkdir -p "$build"
     (
         cd "$build"
+
+        local guile_extra_flags=""
+        if [ -n "$MINGW_CROSS" ]; then
+            # Pass some extra flags to configure. Need explicit --build option
+            # to enforce cross compilation.
+            local guile_extra_flags="--build=$NATIVE_TARGET CC_FOR_BUILD=cc GUILE_FOR_BUILD=$NATIVE_GUILE_INSTALL/bin/guile"
+        fi
+
         PKG_CONFIG_LIBDIR="$GC_INSTALL/lib/pkgconfig:$LIBFFI_INSTALL/lib/pkgconfig" \
-        "$src/configure" --prefix="$GUILE_INSTALL" --disable-shared --enable-static \
-            --with-pic --without-threads --disable-error-on-warning \
-            --with-libgmp-prefix="$GMP_INSTALL" \
+        "$src/configure" $CONFIGURE_HOST --prefix="$GUILE_INSTALL" \
+            --disable-shared --enable-static --with-pic \
+            --without-threads --disable-networking \
+            --disable-error-on-warning $guile_extra_flags \
+            --with-libiconv-prefix="$LIBICONV_INSTALL" \
             --with-libunistring-prefix="$LIBUNISTRING_INSTALL" \
+            --with-libgmp-prefix="$GMP_INSTALL" \
             --with-libltdl-prefix="$LIBTOOL_INSTALL"
         $MAKE -j$PROCS
         $MAKE install
@@ -365,7 +478,8 @@ build_pixman()
     mkdir -p "$build"
     (
         cd "$build"
-        "$src/configure" --prefix="$PIXMAN_INSTALL" --disable-shared --enable-static
+        "$src/configure" $CONFIGURE_HOST --prefix="$PIXMAN_INSTALL" \
+            --disable-shared --enable-static
         $MAKE -j$PROCS
         $MAKE install
     ) > "$LOG/pixman.log" 2>&1 &
@@ -391,10 +505,24 @@ build_cairo()
         pkg_config_libdir="$pkg_config_libdir:$UTIL_LINUX_INSTALL/lib/pkgconfig"
         pkg_config_libdir="$pkg_config_libdir:$PIXMAN_INSTALL/lib/pkgconfig"
 
+        local cairo_library_flags="--disable-shared --enable-static"
+        local cairo_extra_ldflags=""
+        if [ -n "$MINGW_CROSS" ]; then
+            # The library relies on DllMain which doesn't work with static.
+            local cairo_library_flags="--enable-shared --disable-static lt_cv_deplibs_check_method=pass_all"
+            local cairo_extra_ldflags="-lssp"
+        fi
+
         PKG_CONFIG_LIBDIR="$pkg_config_libdir" \
-        "$src/configure" --prefix="$CAIRO_INSTALL" --disable-shared --enable-static \
+        "$src/configure" $CONFIGURE_HOST --prefix="$CAIRO_INSTALL" \
+            $cairo_library_flags \
+            --enable-xlib=no --enable-xlib-xrender=no --enable-xcb=no \
+            --enable-xlib-xcb=no --enable-xcb-shm=no --enable-qt=no \
+            --enable-quartz=no --enable-quartz-font=no --enable-quartz-image=no \
             --enable-png=no --enable-svg=no \
-            --enable-interpreter=no --enable-trace=no
+            --enable-interpreter=no --enable-trace=no \
+            CPPFLAGS="-I$ZLIB_INSTALL/include" \
+            LDFLAGS="-L$ZLIB_INSTALL/lib $cairo_extra_ldflags"
         $MAKE -j$PROCS
         $MAKE install
     ) > "$LOG/cairo.log" 2>&1 &
@@ -408,15 +536,16 @@ build_harfbuzz()
     local build="$BUILD/$HARFBUZZ_DIR"
 
     extract "$HARFBUZZ_ARCHIVE" "$src"
-    # Don't build test and docs
-    sed_i "s|SUBDIRS = src util test docs|SUBDIRS = src util|" "$src/Makefile.in"
+    # Don't build util, test, docs
+    sed_i "s|SUBDIRS = src util test docs|SUBDIRS = src|" "$src/Makefile.in"
 
     echo "Building harfbuzz..."
     mkdir -p "$build"
     (
         cd "$build"
         PKG_CONFIG_LIBDIR="$FREETYPE_INSTALL/lib/pkgconfig:$GLIB2_INSTALL/lib/pkgconfig" \
-        "$src/configure" --prefix="$HARFBUZZ_INSTALL" --disable-shared --enable-static
+        "$src/configure" $CONFIGURE_HOST --prefix="$HARFBUZZ_INSTALL" \
+            --disable-shared --enable-static --with-icu=no
         $MAKE -j$PROCS
         $MAKE install
     ) > "$LOG/harfbuzz.log" 2>&1 &
@@ -436,6 +565,16 @@ build_pango()
     echo "Building pango..."
     mkdir -p "$build"
     (
+        local pango_library="static"
+        local pango_extra_flags=""
+        if [ -n "$MINGW_CROSS" ]; then
+            # We need to build glib2 and cairo as dynamic libraries, so pango
+            # also needs to be one for linking.
+            local pango_library="shared"
+            # Pass some extra flags to meson.
+            local pango_extra_flags="$MESON_CROSS_ARG"
+        fi
+
         pkg_config_libdir="$CAIRO_INSTALL/lib/pkgconfig:$PIXMAN_INSTALL/lib/pkgconfig"
         pkg_config_libdir="$pkg_config_libdir:$EXPAT_INSTALL/lib/pkgconfig"
         pkg_config_libdir="$pkg_config_libdir:$FONTCONFIG_INSTALL/lib/pkgconfig"
@@ -447,9 +586,9 @@ build_pango()
 
         PATH="$GLIB2_INSTALL/bin:$PATH" PKG_CONFIG_LIBDIR="$pkg_config_libdir" \
         meson setup --prefix "$PANGO_INSTALL" --libdir=lib --buildtype plain \
-            --default-library static --auto-features=disabled \
+            --default-library "$pango_library" --auto-features=disabled \
             -D introspection=false \
-            "$src" "$build"
+            $pango_extra_flags "$src" "$build"
         ninja -C "$build" -j$PROCS
         meson install -C "$build"
     ) > "$LOG/pango.log" 2>&1 &
@@ -468,7 +607,8 @@ build_python()
     mkdir -p "$build"
     (
         cd "$build"
-        "$src/configure" --prefix="$PYTHON_INSTALL" --disable-shared --enable-static
+        "$src/configure" --prefix="$PYTHON_INSTALL" \
+            --disable-shared --enable-static
         $MAKE -j$PROCS
         $MAKE install
     ) > "$LOG/python.log" 2>&1 &
@@ -480,7 +620,9 @@ build_python()
 fns=""
 fns="$fns build_expat"
 fns="$fns build_freetype2"
-fns="$fns build_util_linux"
+if [ -z "$MINGW_CROSS" ]; then
+    fns="$fns build_util_linux"
+fi
 fns="$fns build_fontconfig"
 fns="$fns build_ghostscript"
 fns="$fns build_libffi"
@@ -489,13 +631,16 @@ fns="$fns build_glib2"
 fns="$fns build_gc"
 fns="$fns build_gmp"
 fns="$fns build_libtool"
+fns="$fns build_libiconv"
 fns="$fns build_libunistring"
 fns="$fns build_guile"
 fns="$fns build_pixman"
 fns="$fns build_cairo"
 fns="$fns build_harfbuzz"
 fns="$fns build_pango"
-fns="$fns build_python"
+if [ -z "$MINGW_CROSS" ]; then
+    fns="$fns build_python"
+fi
 
 for fn in $fns; do
     $fn

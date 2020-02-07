@@ -1,3 +1,8 @@
+if [ -n "$TOOLS_INCLUDED" ]; then
+    return
+fi
+TOOLS_INCLUDED="1"
+
 . "$(dirname $0)/common.sh"
 
 if [ ! -d "$TOOLS_BIN" ]; then

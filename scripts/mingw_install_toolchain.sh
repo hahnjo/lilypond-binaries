@@ -41,10 +41,6 @@ extract "$MINGW_ARCHIVE" "$MINGW_SRC"
 echo ""
 
 mkdir -p "$MINGW_TOOLCHAIN_INSTALL"
-# Before building, put installation directory into PATH.
-# (${parameter:+word} -- if parameter is set and is not null,
-#  then substitute the value of word). 
-PATH=$MINGW_TOOLCHAIN_INSTALL/bin${PATH:+:$PATH}
 
 # Build and install binutils.
 build_binutils()
