@@ -67,4 +67,5 @@ mkdir -p "$LILYPOND_BUILD"
 
     $MAKE -j$PROCS
     $MAKE install
-) > "$LILYPOND/build.log" 2>&1 || print_failed_and_exit "$LILYPOND/build.log"
+) > "$LILYPOND/build.log" 2>&1 &
+wait $! || print_failed_and_exit "$LILYPOND/build.log"

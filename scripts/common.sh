@@ -55,6 +55,13 @@ download()
     curl --silent --location "$url" --output "$download_file"
 )
 
+# When using function together with a subshell, be sure to write
+#     ( ) &
+#     wait $! || print_failed_and_exit
+# instead of just
+#     ( ) || print_failed_and_exit
+# Otherwise set -e is not propagated to the subshell! See
+# https://unix.stackexchange.com/a/254675 for an explanation.
 print_failed_and_exit()
 (
     echo "FAILED: See $1 for more information"

@@ -47,7 +47,8 @@ build_ninja()
         cd "$build"
         "$src/configure.py" --bootstrap
         cp "$build/ninja" "$TOOLS_BIN"
-    ) > "$TOOLS/ninja.log" 2>&1
+    ) > "$TOOLS/ninja.log" 2>&1 &
+    wait $! || print_failed_and_exit "$TOOLS/ninja.log"
 )
 build_ninja
 echo ""
