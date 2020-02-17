@@ -17,6 +17,12 @@ arch="$(uname -m | tr '[A-Z]' '[a-z]')"
 LILYPOND_TAR="lilypond-$os-$arch.tar.gz"
 LILYPOND_FULL_TAR="lilypond-$os-$arch-full.tar.gz"
 
+if [ "$uname" = "Linux" ]; then
+    TAR_ARGS="--owner=0 --group=0"
+elif [ "$uname" = "FreeBSD" ]; then
+    TAR_ARGS="--uid=0 --gid=0"
+fi
+
 echo "Creating '$LILYPOND_TAR'..."
 
 rm -rf "$PACKAGE_DIR"
@@ -31,7 +37,7 @@ strip "$LILYPOND_DIR/bin/lilypond"
 
 # Adapt shebang of Python scripts.
 for s in $PYTHON_SCRIPTS; do
-    sed_i "1 s|.*|#!/usr/bin/env python2|" "$LILYPOND_DIR/bin/$s"
+    sed_i "1 s|.*|#!/usr/bin/env python3|" "$LILYPOND_DIR/bin/$s"
 done
 # Adapt shebang of Guile scripts.
 for s in $GUILE_SCRIPTS; do
@@ -58,7 +64,7 @@ cp -r "$ROOT/relocate" "$LILYPOND_DIR/etc"
 # Create archive.
 (
     cd "$PACKAGE_DIR"
-    tar czof "$ROOT/$LILYPOND_TAR" lilypond
+    tar czf "$ROOT/$LILYPOND_TAR" $TAR_ARGS lilypond
 )
 
 echo "Creating '$LILYPOND_FULL_TAR'..."
@@ -83,9 +89,8 @@ for s in $PYTHON_SCRIPTS; do
     cat > "$wrapper" <<EOF
 #!/bin/sh
 
-script="\$(basename \$0)"
 root="\$(dirname \$0)/.."
-exec "\$root/scripts/$python" "\$root/scripts/\$script" "\$@"
+exec "\$root/scripts/$python" "\$root/scripts/$s" "\$@"
 EOF
     chmod a+x "$wrapper"
 done
@@ -96,11 +101,10 @@ for s in $GUILE_SCRIPTS; do
     cat > "$wrapper" <<EOF
 #!/bin/sh
 
-script="\$(basename \$0)"
 root="\$(dirname \$0)/.."
 export GUILE_LOAD_PATH="\$root/share/guile/$GUILE_VERSION_MAJOR"
 export LD_LIBRARY_PATH="\$root/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
-exec "\$root/scripts/guile" "\$root/scripts/\$script" "\$@"
+exec "\$root/scripts/guile" "\$root/scripts/$s" "\$@"
 EOF
     chmod a+x "$wrapper"
 done
@@ -108,5 +112,5 @@ done
 # Create archive.
 (
     cd "$PACKAGE_DIR"
-    tar czof "$ROOT/$LILYPOND_FULL_TAR" lilypond
+    tar czf "$ROOT/$LILYPOND_FULL_TAR" $TAR_ARGS lilypond
 )
