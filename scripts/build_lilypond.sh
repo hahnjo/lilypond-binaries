@@ -15,6 +15,25 @@ LILYPOND_SRC="$LILYPOND/src"
 LILYPOND_BUILD="$LILYPOND/build"
 LILYPOND_INSTALL="$LILYPOND/install"
 
+if [ -z "$FLEXLEXER_DIR" ]; then
+    FLEXLEXER_DIR="not-found"
+    # Guess the default paths.
+    for d in /usr/include /include; do
+        if [ -f "$d/FlexLexer.h" ]; then
+            FLEXLEXER_DIR="$d"
+            break
+        fi
+    done
+fi
+if [ ! -f "$FLEXLEXER_DIR/FlexLexer.h" ]; then
+    echo "Could not find FlexLexer.h, please set FLEXLEXER_DIR!" >&2
+    exit 1
+fi
+# Copy header to avoid a global -I/usr/include.
+LILYPOND_FLEXLEXER="$LILYPOND/FlexLexer"
+mkdir -p "$LILYPOND_FLEXLEXER"
+cp "$FLEXLEXER_DIR/FlexLexer.h" "$LILYPOND_FLEXLEXER"
+
 if [ ! $VERBOSE = 0 ]; then
     echo "Environment variables:"
     echo "LILYPOND=$LILYPOND"
@@ -53,6 +72,7 @@ mkdir -p "$LILYPOND_BUILD"
     pkg_config_libdir="$pkg_config_libdir:$FONTCONFIG_INSTALL/lib/pkgconfig"
     pkg_config_libdir="$pkg_config_libdir:$FREETYPE_INSTALL/lib/pkgconfig"
     pkg_config_libdir="$pkg_config_libdir:$GLIB2_INSTALL/lib/pkgconfig"
+    pkg_config_libdir="$pkg_config_libdir:$GUILE_INSTALL/lib/pkgconfig"
     pkg_config_libdir="$pkg_config_libdir:$HARFBUZZ_INSTALL/lib/pkgconfig"
     pkg_config_libdir="$pkg_config_libdir:$PANGO_INSTALL/lib/pkgconfig"
     pkg_config_libdir="$pkg_config_libdir:$PIXMAN_INSTALL/lib/pkgconfig"
@@ -60,10 +80,9 @@ mkdir -p "$LILYPOND_BUILD"
 
     PKG_CONFIG_LIBDIR="$pkg_config_libdir" \
     GHOSTSCRIPT="$GHOSTSCRIPT_INSTALL/bin/gs" \
-    GUILE="$GUILE_INSTALL/bin/guile" GUILE_CONFIG="$GUILE_INSTALL/bin/guile-config" \
-    PYTHON="$PYTHON_INSTALL/bin/python3" \
+    GUILE="$GUILE_INSTALL/bin/guile" PYTHON="$PYTHON_INSTALL/bin/python3" \
     "$LILYPOND_SRC/configure" --prefix="$LILYPOND_INSTALL" --disable-documentation \
-        --enable-static-gxx
+        --enable-static-gxx --with-flexlexer-dir="$LILYPOND_FLEXLEXER"
 
     $MAKE -j$PROCS
     $MAKE install
