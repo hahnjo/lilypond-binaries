@@ -13,9 +13,12 @@ set -e
 #  * glib2
 #    * libffi
 #    * zlib
-#  * guile (version 1.8)
-#    * libtool
+#  * guile (version 2.2)
+#    * gc
 #    * gmp
+#    * libffi
+#    * libtool
+#    * libunistring
 #  * pango
 #    * cairo
 #      * fontconfig
@@ -43,8 +46,10 @@ download "$LIBFFI_URL" "$LIBFFI_ARCHIVE"
 download "$ZLIB_URL" "$ZLIB_ARCHIVE"
 download "$GLIB2_URL" "$GLIB2_ARCHIVE"
 
+download "$GC_URL" "$GC_ARCHIVE"
 download "$GMP_URL" "$GMP_ARCHIVE"
 download "$LIBTOOL_URL" "$LIBTOOL_ARCHIVE"
+download "$LIBUNISTRING_URL" "$LIBUNISTRING_ARCHIVE"
 download "$GUILE_URL" "$GUILE_ARCHIVE"
 
 download "$PIXMAN_URL" "$PIXMAN_ARCHIVE"
@@ -146,8 +151,10 @@ build_fontconfig()
             --disable-docs
         $MAKE -j$PROCS
         $MAKE install
-        # Patch pkgconfig file for static dependencies
-        sed_i -e "s|Requires:.*|& uuid expat|" -e "/Requires.private/d" "$FONTCONFIG_INSTALL/lib/pkgconfig/fontconfig.pc"
+
+        # Patch pkgconfig file for static dependencies.
+        sed_i -e "s|Requires:.*|& \\\\|" -e "s|Requires.private:||" \
+            "$FONTCONFIG_INSTALL/lib/pkgconfig/fontconfig.pc"
     ) > "$LOG/fontconfig.log" 2>&1 &
     wait $! || print_failed_and_exit "$LOG/fontconfig.log"
 )
@@ -237,6 +244,27 @@ build_glib2()
     wait $! || print_failed_and_exit "$LOG/glib2.log"
 )
 
+# Build gc (dependency of guile)
+build_gc()
+(
+    local src="$SRC/$GC_DIR"
+    local build="$BUILD/$GC_DIR"
+
+    extract "$GC_ARCHIVE" "$src"
+
+    echo "Building gc..."
+    mkdir -p "$build"
+    (
+        cd "$build"
+        "$src/configure" --prefix="$GC_INSTALL" \
+            --disable-shared --enable-static --with-pic \
+            --disable-threads --disable-docs
+        $MAKE -j$PROCS
+        $MAKE install
+    ) > "$LOG/gc.log" 2>&1 &
+    wait $! || print_failed_and_exit "$LOG/gc.log"
+)
+
 # Build gmp (dependency of guile)
 build_gmp()
 (
@@ -277,6 +305,26 @@ build_libtool()
     wait $! || print_failed_and_exit "$LOG/libtool.log"
 )
 
+# Build libunistring (dependency of guile)
+build_libunistring()
+(
+    local src="$SRC/$LIBUNISTRING_DIR"
+    local build="$BUILD/$LIBUNISTRING_DIR"
+
+    extract "$LIBUNISTRING_ARCHIVE" "$src"
+
+    echo "Building libunistring..."
+    mkdir -p "$build"
+    (
+        cd "$build"
+        "$src/configure" --prefix="$LIBUNISTRING_INSTALL" \
+            --disable-shared --enable-static
+        $MAKE -j$PROCS
+        $MAKE install
+    ) > "$LOG/libunistring.log" 2>&1 &
+    wait $! || print_failed_and_exit "$LOG/libunistring.log"
+)
+
 # Build guile
 build_guile()
 (
@@ -284,25 +332,23 @@ build_guile()
     local build="$BUILD/$GUILE_DIR"
 
     extract "$GUILE_ARCHIVE" "$src"
-    # Export dynamic symbols from guile executable so that srfi modules work.
-    sed_i "s|guile_LDFLAGS = .*$|& -Wl,--export-dynamic|" "$src/libguile/Makefile.in"
 
     echo "Building guile..."
     mkdir -p "$build"
     (
         cd "$build"
-        "$src/configure" --prefix="$GUILE_INSTALL" --disable-shared --enable-static --with-pic \
-            --disable-error-on-warning \
-            CPPFLAGS="-I$GMP_INSTALL/include -I$LIBTOOL_INSTALL/include" \
-            LDFLAGS="-L$GMP_INSTALL/lib -L$LIBTOOL_INSTALL/lib" LIBS="-ldl"
+        PKG_CONFIG_LIBDIR="$GC_INSTALL/lib/pkgconfig:$LIBFFI_INSTALL/lib/pkgconfig" \
+        "$src/configure" --prefix="$GUILE_INSTALL" --disable-shared --enable-static \
+            --with-pic --without-threads --disable-error-on-warning \
+            --with-libgmp-prefix="$GMP_INSTALL" \
+            --with-libunistring-prefix="$LIBUNISTRING_INSTALL" \
+            --with-libltdl-prefix="$LIBTOOL_INSTALL"
         $MAKE -j$PROCS
         $MAKE install
-        # Build shared libraries for srfi modules.
-        cd "$GUILE_INSTALL/lib"
-        for srfi in 1-v-3 4-v-3 13-14-v-3 60-v-2; do
-            lib="libguile-srfi-srfi-$srfi"
-            cc -shared -o "$lib.so" -Wl,--whole-archive "$lib.a" -Wl,--no-whole-archive
-        done
+
+        # Patch pkgconfig file for static dependencies.
+        sed_i -e "s|Libs:.*|& \\\\|" -e "s|Libs.private:||" \
+            "$GUILE_INSTALL/lib/pkgconfig/guile-$GUILE_VERSION_MAJOR.pc"
     ) > "$LOG/guile.log" 2>&1 &
     wait $! || print_failed_and_exit "$LOG/guile.log"
 )
@@ -440,8 +486,10 @@ fns="$fns build_ghostscript"
 fns="$fns build_libffi"
 fns="$fns build_zlib"
 fns="$fns build_glib2"
+fns="$fns build_gc"
 fns="$fns build_gmp"
 fns="$fns build_libtool"
+fns="$fns build_libunistring"
 fns="$fns build_guile"
 fns="$fns build_pixman"
 fns="$fns build_cairo"

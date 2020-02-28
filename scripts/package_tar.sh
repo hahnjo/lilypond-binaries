@@ -41,7 +41,7 @@ for s in $PYTHON_SCRIPTS; do
 done
 # Adapt shebang of Guile scripts.
 for s in $GUILE_SCRIPTS; do
-    sed_i "1 s|.*|#!/usr/bin/env guile|" "$LILYPOND_DIR/bin/$s"
+    sed_i "1 s|.*|#!/usr/bin/env guile --no-auto-compile|" "$LILYPOND_DIR/bin/$s"
 done
 
 # Copy configuration files for Fontconfig.
@@ -49,10 +49,13 @@ mkdir -p "$LILYPOND_DIR/etc/fonts"
 cp -r "$FONTCONFIG_INSTALL/etc/fonts/fonts.conf" "$LILYPOND_DIR/etc/fonts"
 sed_i "\\|$FONTCONFIG_INSTALL|d" "$LILYPOND_DIR/etc/fonts/fonts.conf"
 
-# Copy needed files for Guile.
-cp "$GUILE_INSTALL/lib"/libguile-srfi-srfi-*.so "$LILYPOND_DIR/lib"
-strip "$LILYPOND_DIR/lib"/libguile-srfi-srfi-*.so
-cp -r "$GUILE_INSTALL/share/guile" "$LILYPOND_DIR/share"
+# Copy needed files for Guile. Source files in share/ should go before ccache
+# to avoid warnings.
+for d in share lib; do
+    cp -r "$GUILE_INSTALL/$d/guile" "$LILYPOND_DIR/$d/guile"
+done
+# Delete guile-readline extension.
+rm -rf "$LILYPOND_DIR/lib/guile/$GUILE_VERSION_MAJOR/extensions"
 
 # Copy Ghostscript binary.
 cp "$GHOSTSCRIPT_INSTALL/bin/gs" "$LILYPOND_DIR/bin"
@@ -102,8 +105,9 @@ for s in $GUILE_SCRIPTS; do
 #!/bin/sh
 
 root="\$(dirname \$0)/.."
+export GUILE_AUTO_COMPILE=0
 export GUILE_LOAD_PATH="\$root/share/guile/$GUILE_VERSION_MAJOR"
-export LD_LIBRARY_PATH="\$root/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
+export GUILE_LOAD_COMPILED_PATH="\$root/lib/guile/$GUILE_VERSION_MAJOR/ccache"
 exec "\$root/scripts/guile" "\$root/scripts/$s" "\$@"
 EOF
     chmod a+x "$wrapper"
