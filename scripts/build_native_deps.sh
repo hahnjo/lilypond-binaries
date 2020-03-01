@@ -415,6 +415,12 @@ build_guile()
     local build="$BUILD/$GUILE_DIR"
 
     extract "$GUILE_ARCHIVE" "$src"
+    # Fix configure on CentOS to not look in lib64.
+    sed_i "s|=lib64|=lib|g" "$src/configure"
+    if [ "$uname" = "FreeBSD" ]; then
+        # Fix non-portable invocation of inplace sed.
+        sed_i "s|\$(SED) -i|\$(SED)|" "$src/libguile/Makefile.in"
+    fi
     if [ -n "$MINGW_CROSS" ]; then
         # Remove SCM_IMPORT from source file for guile executable, leads to
         # linking errors.
@@ -459,8 +465,10 @@ build_guile()
         $MAKE -j$PROCS
         $MAKE install
 
-        # Patch pkgconfig file for static dependencies.
+        # Patch pkgconfig file for static dependencies. For CentOS, explicitly
+        # mention the static library or pkg-config will reorder the libraries.
         sed_i -e "s|Libs:.*|& \\\\|" -e "s|Libs.private:||" \
+              -e "s|-lguile-$GUILE_VERSION_MAJOR|\${libdir}/libguile-$GUILE_VERSION_MAJOR.a|" \
             "$GUILE_INSTALL/lib/pkgconfig/guile-$GUILE_VERSION_MAJOR.pc"
     ) > "$LOG/guile.log" 2>&1 &
     wait $! || print_failed_and_exit "$LOG/guile.log"
