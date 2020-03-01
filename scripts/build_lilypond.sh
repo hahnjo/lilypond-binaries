@@ -10,6 +10,16 @@ fi
 . "$(dirname $0)/native_deps.sh"
 . "$(dirname $0)/tools.sh"
 
+if [ -n "$MINGW_CROSS" ]; then
+    # Build below mingw/
+    ROOT="$MINGW_ROOT"
+    # Use native Python.
+    PYTHON_INSTALL="$NATIVE_PYTHON_INSTALL"
+else
+    # Not cross-compiling, so just empty.
+    CONFIGURE_HOST=""
+fi
+
 LILYPOND="$ROOT/lilypond"
 LILYPOND_SRC="$LILYPOND/src"
 LILYPOND_BUILD="$LILYPOND/build"
@@ -78,10 +88,17 @@ mkdir -p "$LILYPOND_BUILD"
     PKG_CONFIG_LIBDIR="$pkg_config_libdir" \
     GHOSTSCRIPT="$GHOSTSCRIPT_INSTALL/bin/gs" \
     GUILE="$GUILE_INSTALL/bin/guile" PYTHON="$PYTHON_INSTALL/bin/python3" \
-    "$LILYPOND_SRC/configure" --prefix="$LILYPOND_INSTALL" --disable-documentation \
-        --enable-static-gxx --with-flexlexer-dir="$LILYPOND_FLEXLEXER"
+    "$LILYPOND_SRC/configure" $CONFIGURE_HOST --prefix="$LILYPOND_INSTALL" \
+        --disable-documentation --enable-static-gxx \
+        CPPFLAGS="-isystem $LILYPOND_FLEXLEXER -DSTATIC"
 
     $MAKE -j$PROCS
+
+    if [ -n "$MINGW_CROSS" ]; then
+        # Workaround broken build system for now.
+        (cd "$LILYPOND_BUILD/lily/out/" && mv lilypond.exe lilypond)
+    fi
+
     $MAKE install
 ) > "$LILYPOND/build.log" 2>&1 &
 wait $! || print_failed_and_exit "$LILYPOND/build.log"

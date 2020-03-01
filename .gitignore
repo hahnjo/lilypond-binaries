@@ -1,10 +1,12 @@
 /downloads/
 /dependencies/
 /lilypond/
+/mingw/
 /package/
 /tools/
 
 /*.tar.gz
+/*.zip
 
 /*.ly
 /*.pdf
