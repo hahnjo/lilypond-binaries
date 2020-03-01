@@ -203,7 +203,7 @@ build_ghostscript()
 
         PKG_CONFIG_LIBDIR="$FONTCONFIG_INSTALL/lib/pkgconfig:$FREETYPE_INSTALL/lib/pkgconfig" \
         "$src/configure" $CONFIGURE_HOST --prefix="$GHOSTSCRIPT_INSTALL" \
-            --disable-dynamic --with-drivers=PS \
+            --disable-dynamic --with-drivers=PNG,PS \
             --without-libidn --without-libpaper --without-libtiff --without-pdftoraster \
             --without-ijs --without-luratech --without-jbig2dec --without-cal \
             --disable-cups --disable-openjpeg --disable-gtk $gs_extra_flags
