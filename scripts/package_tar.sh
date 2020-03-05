@@ -26,6 +26,9 @@ fi
 echo "Creating '$LILYPOND_TAR'..."
 
 rm -rf "$PACKAGE_DIR"
+rm -f "$LILYPOND_TAR"
+rm -f "$LILYPOND_FULL_TAR"
+
 mkdir -p "$LILYPOND_DIR"
 for dir in bin etc lib share; do
     mkdir "$LILYPOND_DIR/$dir"
@@ -116,5 +119,7 @@ done
 # Create archive.
 (
     cd "$PACKAGE_DIR"
-    tar czf "$ROOT/$LILYPOND_FULL_TAR" $TAR_ARGS lilypond
+    # Package lib/ last which contains the ccache for Guile.
+    contents="$(ls -d lilypond/* | grep -v lilypond/lib) lilypond/lib"
+    tar czf "$ROOT/$LILYPOND_FULL_TAR" $TAR_ARGS $contents
 )

@@ -21,6 +21,8 @@ LILYPOND_MINGW_ZIP="lilypond-mingw-x86_64.zip"
 echo "Creating '$LILYPOND_MINGW_ZIP'..."
 
 rm -rf "$PACKAGE_DIR"
+rm -f "$LILYPOND_MINGW_ZIP"
+
 mkdir -p "$LILYPOND_DIR"
 for dir in bin etc lib share; do
     mkdir "$LILYPOND_DIR/$dir"
@@ -66,5 +68,7 @@ cp -r "$ROOT/relocate" "$LILYPOND_DIR/etc"
 # Create archive.
 (
     cd "$PACKAGE_DIR"
-    zip --recurse-paths --quiet "$ROOT/$LILYPOND_MINGW_ZIP" $TAR_ARGS lilypond
+    # Package lib/ last which contains the ccache for Guile.
+    contents="$(ls -d lilypond/* | grep -v lilypond/lib) lilypond/lib"
+    zip --recurse-paths --quiet "$ROOT/$LILYPOND_MINGW_ZIP" $contents
 )
