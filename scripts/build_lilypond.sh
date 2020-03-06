@@ -72,8 +72,7 @@ mkdir -p "$LILYPOND_BUILD"
 (
     cd "$LILYPOND_BUILD"
 
-    pkg_config_libdir="$CAIRO_INSTALL/lib/pkgconfig"
-    pkg_config_libdir="$pkg_config_libdir:$EXPAT_INSTALL/lib/pkgconfig"
+    pkg_config_libdir="$EXPAT_INSTALL/lib/pkgconfig"
     pkg_config_libdir="$pkg_config_libdir:$LIBFFI_INSTALL/lib/pkgconfig"
     pkg_config_libdir="$pkg_config_libdir:$FONTCONFIG_INSTALL/lib/pkgconfig"
     pkg_config_libdir="$pkg_config_libdir:$FREETYPE_INSTALL/lib/pkgconfig"
@@ -81,8 +80,8 @@ mkdir -p "$LILYPOND_BUILD"
     pkg_config_libdir="$pkg_config_libdir:$GC_INSTALL/lib/pkgconfig"
     pkg_config_libdir="$pkg_config_libdir:$GUILE_INSTALL/lib/pkgconfig"
     pkg_config_libdir="$pkg_config_libdir:$HARFBUZZ_INSTALL/lib/pkgconfig"
+    pkg_config_libdir="$pkg_config_libdir:$FRIBIDI_INSTALL/lib/pkgconfig"
     pkg_config_libdir="$pkg_config_libdir:$PANGO_INSTALL/lib/pkgconfig"
-    pkg_config_libdir="$pkg_config_libdir:$PIXMAN_INSTALL/lib/pkgconfig"
     pkg_config_libdir="$pkg_config_libdir:$UTIL_LINUX_INSTALL/lib/pkgconfig"
 
     PKG_CONFIG_LIBDIR="$pkg_config_libdir" \

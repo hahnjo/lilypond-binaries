@@ -36,9 +36,6 @@ cp -r "$LILYPOND_INSTALL"/* "$LILYPOND_DIR"
 for lib in libglib-2.0-0.dll libgobject-2.0-0.dll libintl.dll; do
     cp "$GLIB2_INSTALL/bin/$lib" "$LILYPOND_DIR/bin"
 done
-for lib in libpango-1.0-0.dll libpangoft2-1.0-0.dll libfribidi-0.dll; do
-    cp "$PANGO_INSTALL/bin/$lib" "$LILYPOND_DIR/bin"
-done
 
 # Copy configuration files for Fontconfig.
 mkdir -p "$LILYPOND_DIR/etc/fonts"

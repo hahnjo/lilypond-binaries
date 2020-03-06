@@ -21,11 +21,9 @@ set -e
 #    * libunistring
 #      * libiconv
 #  * pango
-#    * cairo
-#      * fontconfig
-#      * freetype2
-#      * pixman
-#      * zlib
+#    * fontconfig
+#    * freetype2
+#    * fribidi
 #    * glib2
 #    * harfbuzz
 #  * python (version 2.7)
@@ -62,9 +60,8 @@ download "$LIBICONV_URL" "$LIBICONV_ARCHIVE"
 download "$LIBUNISTRING_URL" "$LIBUNISTRING_ARCHIVE"
 download "$GUILE_URL" "$GUILE_ARCHIVE"
 
-download "$PIXMAN_URL" "$PIXMAN_ARCHIVE"
-download "$CAIRO_URL" "$CAIRO_ARCHIVE"
 download "$HARFBUZZ_URL" "$HARFBUZZ_ARCHIVE"
+download "$FRIBIDI_URL" "$FRIBIDI_ARCHIVE"
 download "$PANGO_URL" "$PANGO_ARCHIVE"
 
 download "$PYTHON_URL" "$PYTHON_ARCHIVE"
@@ -474,69 +471,6 @@ build_guile()
     wait $! || print_failed_and_exit "$LOG/guile.log"
 )
 
-# Build pixman (dependency of cairo)
-build_pixman()
-(
-    local src="$SRC/$PIXMAN_DIR"
-    local build="$BUILD/$PIXMAN_DIR"
-
-    extract "$PIXMAN_ARCHIVE" "$src"
-
-    echo "Building pixman..."
-    mkdir -p "$build"
-    (
-        cd "$build"
-        "$src/configure" $CONFIGURE_HOST --prefix="$PIXMAN_INSTALL" \
-            --disable-shared --enable-static
-        $MAKE -j$PROCS
-        $MAKE install
-    ) > "$LOG/pixman.log" 2>&1 &
-    wait $! || print_failed_and_exit "$LOG/pixman.log"
-)
-
-# Build cairo (dependency of pango)
-build_cairo()
-(
-    local src="$SRC/$CAIRO_DIR"
-    local build="$BUILD/$CAIRO_DIR"
-
-    extract "$CAIRO_ARCHIVE" "$src"
-
-    echo "Building cairo..."
-    mkdir -p "$build"
-    (
-        cd "$build"
-
-        pkg_config_libdir="$FREETYPE_INSTALL/lib/pkgconfig"
-        pkg_config_libdir="$pkg_config_libdir:$EXPAT_INSTALL/lib/pkgconfig"
-        pkg_config_libdir="$pkg_config_libdir:$FONTCONFIG_INSTALL/lib/pkgconfig"
-        pkg_config_libdir="$pkg_config_libdir:$UTIL_LINUX_INSTALL/lib/pkgconfig"
-        pkg_config_libdir="$pkg_config_libdir:$PIXMAN_INSTALL/lib/pkgconfig"
-
-        local cairo_library_flags="--disable-shared --enable-static"
-        local cairo_extra_ldflags=""
-        if [ -n "$MINGW_CROSS" ]; then
-            # The library relies on DllMain which doesn't work with static.
-            local cairo_library_flags="--enable-shared --disable-static lt_cv_deplibs_check_method=pass_all"
-            local cairo_extra_ldflags="-lssp"
-        fi
-
-        PKG_CONFIG_LIBDIR="$pkg_config_libdir" \
-        "$src/configure" $CONFIGURE_HOST --prefix="$CAIRO_INSTALL" \
-            $cairo_library_flags \
-            --enable-xlib=no --enable-xlib-xrender=no --enable-xcb=no \
-            --enable-xlib-xcb=no --enable-xcb-shm=no --enable-qt=no \
-            --enable-quartz=no --enable-quartz-font=no --enable-quartz-image=no \
-            --enable-png=no --enable-svg=no \
-            --enable-interpreter=no --enable-trace=no \
-            CPPFLAGS="-I$ZLIB_INSTALL/include" \
-            LDFLAGS="-L$ZLIB_INSTALL/lib $cairo_extra_ldflags"
-        $MAKE -j$PROCS
-        $MAKE install
-    ) > "$LOG/cairo.log" 2>&1 &
-    wait $! || print_failed_and_exit "$LOG/cairo.log"
-)
-
 # Build harfuzz (dependency of pango)
 build_harfbuzz()
 (
@@ -556,8 +490,32 @@ build_harfbuzz()
             --disable-shared --enable-static --with-icu=no
         $MAKE -j$PROCS
         $MAKE install
+
+        # Patch pkgconfig file for static dependencies.
+        sed_i "s|Requires.private:|Requires:|" \
+            "$HARFBUZZ_INSTALL/lib/pkgconfig/harfbuzz.pc"
     ) > "$LOG/harfbuzz.log" 2>&1 &
     wait $! || print_failed_and_exit "$LOG/harfbuzz.log"
+)
+
+# Build fribidi (dependency of pango)
+build_fribidi()
+(
+    local src="$SRC/$FRIBIDI_DIR"
+    local build="$BUILD/$FRIBIDI_DIR"
+
+    extract "$FRIBIDI_ARCHIVE" "$src"
+
+    echo "Building fribidi..."
+    mkdir -p "$build"
+    (
+        cd "$build"
+        "$src/configure" $CONFIGURE_HOST --prefix="$FRIBIDI_INSTALL" \
+            --disable-shared --enable-static
+        $MAKE -j$PROCS
+        $MAKE install
+    ) > "$LOG/fribidi.log" 2>&1 &
+    wait $! || print_failed_and_exit "$LOG/fribidi.log"
 )
 
 # Build pango
@@ -567,34 +525,31 @@ build_pango()
     local build="$BUILD/$PANGO_DIR"
 
     extract "$PANGO_ARCHIVE" "$src"
+    # Make cairo optional again.
+    sed_i "s|cairo_req_version,$|& required: false,|" "$src/meson.build"
     # Don't build utils, tests, tools
     sed_i -E "/subdir\('(utils|tests|tools)'\)/d" "$src/meson.build"
 
     echo "Building pango..."
     mkdir -p "$build"
     (
-        local pango_library="static"
         local pango_extra_flags=""
         if [ -n "$MINGW_CROSS" ]; then
-            # We need to build glib2 and cairo as dynamic libraries, so pango
-            # also needs to be one for linking.
-            local pango_library="shared"
-            # Pass some extra flags to meson.
             local pango_extra_flags="$MESON_CROSS_ARG"
         fi
 
-        pkg_config_libdir="$CAIRO_INSTALL/lib/pkgconfig:$PIXMAN_INSTALL/lib/pkgconfig"
-        pkg_config_libdir="$pkg_config_libdir:$EXPAT_INSTALL/lib/pkgconfig"
+        pkg_config_libdir="$EXPAT_INSTALL/lib/pkgconfig"
         pkg_config_libdir="$pkg_config_libdir:$FONTCONFIG_INSTALL/lib/pkgconfig"
         pkg_config_libdir="$pkg_config_libdir:$UTIL_LINUX_INSTALL/lib/pkgconfig"
         pkg_config_libdir="$pkg_config_libdir:$FREETYPE_INSTALL/lib/pkgconfig"
         pkg_config_libdir="$pkg_config_libdir:$HARFBUZZ_INSTALL/lib/pkgconfig"
+        pkg_config_libdir="$pkg_config_libdir:$FRIBIDI_INSTALL/lib/pkgconfig"
         pkg_config_libdir="$pkg_config_libdir:$GLIB2_INSTALL/lib/pkgconfig"
         pkg_config_libdir="$pkg_config_libdir:$LIBFFI_INSTALL/lib/pkgconfig"
 
         PATH="$GLIB2_INSTALL/bin:$PATH" PKG_CONFIG_LIBDIR="$pkg_config_libdir" \
         meson setup --prefix "$PANGO_INSTALL" --libdir=lib --buildtype plain \
-            --default-library "$pango_library" --auto-features=disabled \
+            --default-library static --auto-features=disabled \
             -D introspection=false \
             $pango_extra_flags "$src" "$build"
         ninja -C "$build" -j$PROCS
@@ -642,9 +597,8 @@ fns="$fns build_libtool"
 fns="$fns build_libiconv"
 fns="$fns build_libunistring"
 fns="$fns build_guile"
-fns="$fns build_pixman"
-fns="$fns build_cairo"
 fns="$fns build_harfbuzz"
+fns="$fns build_fribidi"
 fns="$fns build_pango"
 if [ -z "$MINGW_CROSS" ]; then
     fns="$fns build_python"
