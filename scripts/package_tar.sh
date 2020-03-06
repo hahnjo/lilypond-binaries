@@ -48,8 +48,7 @@ for s in $GUILE_SCRIPTS; do
 done
 
 # Copy configuration files for Fontconfig.
-mkdir -p "$LILYPOND_DIR/etc/fonts"
-cp -r "$FONTCONFIG_INSTALL/etc/fonts/fonts.conf" "$LILYPOND_DIR/etc/fonts"
+cp -r "$FONTCONFIG_INSTALL/etc/fonts" "$LILYPOND_DIR/etc/"
 sed_i "\\|$FONTCONFIG_INSTALL|d" "$LILYPOND_DIR/etc/fonts/fonts.conf"
 
 # Copy needed files for Guile. Source files in share/ should go before ccache
