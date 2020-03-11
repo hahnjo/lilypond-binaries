@@ -30,8 +30,8 @@ This works from tarballs, so either get an official one from https://lilypond.or
 Then start the build with `LILYPOND_TAR=/path/to/lilypond.tar.gz ./scripts/build_lilypond.sh`.
 
 4. Running `./scripts/package_tar.sh` produces two archives with the compiled binaries:
- * `lilypond-$os-$arch.tar.gz` is a minimal version with only LilyPond and required files.
- * `lilypond-$os-$arch-full.tar.gz` additionally contains the interpreter for Python and Guile and wrappers to start the various scripts with them.
+   * `lilypond-$os-$arch.tar.gz` is a minimal version with only LilyPond and required files.
+   * `lilypond-$os-$arch-full.tar.gz` additionally contains the interpreter for Python and Guile and wrappers to start the various scripts with them.
 
 Please note that the first two steps from above are actually independent of LilyPond.
 This means you can keep the result around, reducing the time for rebuilds for another tarball of LilyPond.
