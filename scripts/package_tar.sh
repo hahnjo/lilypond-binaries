@@ -35,7 +35,7 @@ for dir in bin etc lib share; do
 done
 
 # Copy all of LilyPond.
-cp -r "$LILYPOND_INSTALL"/* "$LILYPOND_DIR"
+cp -RL "$LILYPOND_INSTALL"/* "$LILYPOND_DIR"
 strip "$LILYPOND_DIR/bin/lilypond"
 
 # Adapt shebang of Python scripts.
@@ -48,13 +48,13 @@ for s in $GUILE_SCRIPTS; do
 done
 
 # Copy configuration files for Fontconfig.
-cp -r "$FONTCONFIG_INSTALL/etc/fonts" "$LILYPOND_DIR/etc/"
+cp -RL "$FONTCONFIG_INSTALL/etc/fonts" "$LILYPOND_DIR/etc/"
 sed_i "\\|$FONTCONFIG_INSTALL|d" "$LILYPOND_DIR/etc/fonts/fonts.conf"
 
 # Copy needed files for Guile. Source files in share/ should go before ccache
 # to avoid warnings.
 for d in share lib; do
-    cp -r "$GUILE_INSTALL/$d/guile" "$LILYPOND_DIR/$d/guile"
+    cp -RL "$GUILE_INSTALL/$d/guile" "$LILYPOND_DIR/$d/guile"
 done
 # Delete guile-readline extension.
 rm -rf "$LILYPOND_DIR/lib/guile/$GUILE_VERSION_MAJOR/extensions"
@@ -64,12 +64,14 @@ cp "$GHOSTSCRIPT_INSTALL/bin/gs" "$LILYPOND_DIR/bin"
 strip "$LILYPOND_DIR/bin/gs"
 
 # Copy files for relocation.
-cp -r "$ROOT/relocate" "$LILYPOND_DIR/etc"
+cp -RL "$ROOT/relocate" "$LILYPOND_DIR/etc"
 
 # Create archive.
 (
     cd "$PACKAGE_DIR"
-    tar czf "$ROOT/$LILYPOND_TAR" $TAR_ARGS lilypond
+    # Package lib/ last which contains the ccache for Guile.
+    contents="$(ls -d lilypond/* | grep -v lilypond/lib) lilypond/lib"
+    tar czf "$ROOT/$LILYPOND_TAR" $TAR_ARGS $contents
 )
 
 echo "Creating '$LILYPOND_FULL_TAR'..."
@@ -83,7 +85,7 @@ cp "$PYTHON_INSTALL/bin/$python" "$LILYPOND_DIR/scripts"
 strip "$LILYPOND_DIR/scripts/$python"
 
 # Copy packages for Python ...
-cp -r "$PYTHON_INSTALL/lib/$python" "$LILYPOND_DIR/lib"
+cp -RL "$PYTHON_INSTALL/lib/$python" "$LILYPOND_DIR/lib"
 # ... but delete tests.
 rm -r "$LILYPOND_DIR/lib/$python/test"
 

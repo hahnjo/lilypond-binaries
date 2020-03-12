@@ -29,7 +29,7 @@ for dir in bin etc lib share; do
 done
 
 # Copy all of LilyPond.
-cp -r "$LILYPOND_INSTALL"/* "$LILYPOND_DIR"
+cp -RL "$LILYPOND_INSTALL"/* "$LILYPOND_DIR"
 "$MINGW_STRIP" "$LILYPOND_DIR/bin/lilypond.exe"
 
 # Copy required libraries.
@@ -38,13 +38,13 @@ for lib in libglib-2.0-0.dll libgobject-2.0-0.dll libintl.dll; do
 done
 
 # Copy configuration files for Fontconfig.
-cp -r "$FONTCONFIG_INSTALL/etc/fonts" "$LILYPOND_DIR/etc/"
+cp -RL "$FONTCONFIG_INSTALL/etc/fonts" "$LILYPOND_DIR/etc/"
 sed_i "\\|$FONTCONFIG_INSTALL|d" "$LILYPOND_DIR/etc/fonts/fonts.conf"
 
 # Copy needed files for Guile. Source files in share/ should go before ccache
 # to avoid warnings.
 for d in share lib; do
-    cp -r "$GUILE_INSTALL/$d/guile" "$LILYPOND_DIR/$d/guile"
+    cp -RL "$GUILE_INSTALL/$d/guile" "$LILYPOND_DIR/$d/guile"
 done
 
 # Copy Ghostscript binary and spawn helpers from glib2.
@@ -59,7 +59,7 @@ done
 "$MINGW_STRIP" "$LILYPOND_DIR/bin"/lib*.dll
 
 # Copy files for relocation.
-cp -r "$ROOT/relocate" "$LILYPOND_DIR/etc"
+cp -RL "$ROOT/relocate" "$LILYPOND_DIR/etc"
 
 # Create archive.
 (
