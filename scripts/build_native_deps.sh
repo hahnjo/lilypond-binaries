@@ -309,10 +309,13 @@ build_gc()
     (
         cd "$build"
         "$src/configure" $CONFIGURE_HOST --prefix="$GC_INSTALL" \
-            --disable-shared --enable-static --with-pic \
-            --disable-threads --disable-docs
+            --disable-shared --enable-static --disable-docs \
+            --enable-large-config
         $MAKE -j$PROCS
         $MAKE install
+
+        # Patch pkgconfig file to include -pthread.
+        sed_i "s|Cflags:.*|& -pthread|" "$GC_INSTALL/lib/pkgconfig/bdw-gc.pc"
     ) > "$LOG/gc.log" 2>&1 &
     wait $! || print_failed_and_exit "$LOG/gc.log"
 )
