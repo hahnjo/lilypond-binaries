@@ -57,16 +57,6 @@ echo "Extracting '$LILYPOND_TAR'..."
 mkdir -p "$LILYPOND_SRC"
 tar -x -f "$LILYPOND_TAR" -C "$LILYPOND_SRC" --strip-components 1
 
-# Enable dynamic relocation.
-cat > "$LILYPOND_SRC/python/relocate-preamble.py.in" <<'EOF'
-"""
-bindir = os.path.abspath (os.path.dirname (sys.argv[0]))
-for p in ['share', 'lib']:
-    datadir = os.path.abspath (bindir + '/../%s/lilypond/@TOPLEVEL_VERSION@/python/' % p)
-    sys.path.insert (0, datadir)
-"""
-EOF
-
 echo "Building lilypond..."
 mkdir -p "$LILYPOND_BUILD"
 (
