@@ -320,6 +320,13 @@ build_glib2()
             $glib2_extra_flags "$src" "$build"
         ninja -C "$build" -j$PROCS
         meson install -C "$build"
+
+        # Patch pkgconfig file for static dependencies on macOS to include
+        # the -framework definitions.
+        if [ "$uname" = "Darwin" ]; then
+            sed_i -e "s|Libs:.*|& \\\\|" -e "s|Libs.private:||" \
+                "$GLIB2_INSTALL/lib/pkgconfig/glib-2.0.pc"
+        fi
     ) > "$LOG/glib2.log" 2>&1 &
     wait $! || print_failed_and_exit "$LOG/glib2.log"
 )
@@ -485,6 +492,7 @@ build_guile()
         if [ "$uname" = "Darwin" ]; then
             # Pass some extra flags to configure.
             local guile_extra_flags="--with-libintl-prefix=$GETTEXT_INSTALL"
+            export LDFLAGS="-Wl,-framework -Wl,CoreFoundation"
         fi
         if [ -n "$MINGW_CROSS" ]; then
             # Pass some extra flags to configure. Need explicit --build option
