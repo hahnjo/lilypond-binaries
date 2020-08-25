@@ -28,7 +28,7 @@ LILYPOND_INSTALL="$LILYPOND/install"
 if [ -z "$FLEXLEXER_DIR" ]; then
     FLEXLEXER_DIR="not-found"
     # Guess the default paths.
-    for d in /usr/include /include; do
+    for d in /usr/include /include /Library/Developer/CommandLineTools/usr/include; do
         if [ -f "$d/FlexLexer.h" ]; then
             FLEXLEXER_DIR="$d"
             break
