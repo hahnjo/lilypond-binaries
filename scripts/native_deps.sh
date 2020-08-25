@@ -41,6 +41,12 @@ GHOSTSCRIPT_URL="https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/
 GHOSTSCRIPT_DIR="ghostscript-$GHOSTSCRIPT_VERSION"
 GHOSTSCRIPT_INSTALL="$INSTALL/$GHOSTSCRIPT_DIR"
 
+GETTEXT_VERSION="0.21"
+GETTEXT_ARCHIVE="gettext-$GETTEXT_VERSION.tar.gz"
+GETTEXT_URL="https://ftp.gnu.org/pub/gnu/gettext/$GETTEXT_ARCHIVE"
+GETTEXT_DIR="gettext-$GETTEXT_VERSION"
+GETTEXT_INSTALL="$INSTALL/$GETTEXT_DIR"
+
 LIBFFI_VERSION="3.2.1"
 LIBFFI_ARCHIVE="libffi-$LIBFFI_VERSION.tar.gz"
 LIBFFI_URL="https://sourceware.org/pub/libffi/$LIBFFI_ARCHIVE"

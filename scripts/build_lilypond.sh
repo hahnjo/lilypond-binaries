@@ -28,7 +28,7 @@ LILYPOND_INSTALL="$LILYPOND/install"
 if [ -z "$FLEXLEXER_DIR" ]; then
     FLEXLEXER_DIR="not-found"
     # Guess the default paths.
-    for d in /usr/include /include; do
+    for d in /usr/include /include /Library/Developer/CommandLineTools/usr/include; do
         if [ -f "$d/FlexLexer.h" ]; then
             FLEXLEXER_DIR="$d"
             break
@@ -74,11 +74,16 @@ mkdir -p "$LILYPOND_BUILD"
     pkg_config_libdir="$pkg_config_libdir:$PANGO_INSTALL/lib/pkgconfig"
     pkg_config_libdir="$pkg_config_libdir:$UTIL_LINUX_INSTALL/lib/pkgconfig"
 
+    extra_flags="--enable-static-gxx"
+    if [ "$uname" = "Darwin" ]; then
+        extra_flags=""
+    fi
+
     PKG_CONFIG_LIBDIR="$pkg_config_libdir" \
     GHOSTSCRIPT="$GHOSTSCRIPT_INSTALL/bin/gs" \
     GUILE="$GUILE_INSTALL/bin/guile" PYTHON="$PYTHON_INSTALL/bin/python3" \
     "$LILYPOND_SRC/configure" $CONFIGURE_HOST --prefix="$LILYPOND_INSTALL" \
-        --disable-documentation --enable-static-gxx \
+        --disable-documentation $extra_flags \
         CPPFLAGS="-isystem $LILYPOND_FLEXLEXER -DSTATIC"
 
     $MAKE -j$PROCS

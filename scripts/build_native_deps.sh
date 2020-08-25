@@ -6,20 +6,22 @@ set -e
 #  * fontconfig
 #    * expat
 #    * freetype2
-#    * util-linux (for libuuid on Linux)
+#    * util-linux (for libuuid, except mingw)
 #  * ghostscript
 #    * fontconfig
 #    * freetype2
 #  * glib2
+#    * gettext-runtime (for macOS)
 #    * libffi
 #    * zlib
 #  * guile (version 2.2)
 #    * gc
+#    * gettext-runtime (for macOS)
 #    * gmp
 #    * libffi
 #    * libtool
 #    * libunistring
-#      * libiconv
+#      * libiconv (for mingw)
 #  * pango
 #    * fontconfig
 #    * freetype2
@@ -49,6 +51,7 @@ download "$FONTCONFIG_URL" "$FONTCONFIG_ARCHIVE"
 
 download "$GHOSTSCRIPT_URL" "$GHOSTSCRIPT_ARCHIVE"
 
+download "$GETTEXT_URL" "$GETTEXT_ARCHIVE"
 download "$LIBFFI_URL" "$LIBFFI_ARCHIVE"
 download "$ZLIB_URL" "$ZLIB_ARCHIVE"
 download "$GLIB2_URL" "$GLIB2_ARCHIVE"
@@ -210,6 +213,26 @@ build_ghostscript()
     wait $! || print_failed_and_exit "$LOG/ghostscript.log"
 )
 
+# Build gettext (dependency of glib2 on macOS)
+build_gettext()
+(
+    local src="$SRC/$GETTEXT_DIR"
+    local build="$BUILD/$GETTEXT_DIR"
+
+    extract "$GETTEXT_ARCHIVE" "$src"
+
+    echo "Building gettext..."
+    mkdir -p "$build"
+    (
+        cd "$build"
+        "$src/gettext-runtime/configure" $CONFIGURE_HOST \
+            --prefix="$GETTEXT_INSTALL" --disable-shared --enable-static
+        $MAKE -j$PROCS
+        $MAKE install
+    ) > "$LOG/gettext.log" 2>&1 &
+    wait $! || print_failed_and_exit "$LOG/gettext.log"
+)
+
 # Build libffi (dependency of glib2)
 build_libffi()
 (
@@ -270,14 +293,19 @@ build_glib2()
     sed_i "s|build_tests =.*|build_tests = false|" "$src/meson.build"
     # Don't build gio, fuzzing
     sed_i -E "/subdir\('(gio|fuzzing)'\)/d" "$src/meson.build"
-    # Don't build gobject-query
-    sed_i "/gobject-query/,+3d" "$src/gobject/meson.build"
+    # Don't build gobject-query (delete all three lines)
+    sed_i "/gobject-query/{N;N;N;d;}" "$src/gobject/meson.build"
 
     echo "Building glib2..."
     mkdir -p "$build"
     (
         local glib2_library="static"
         local glib2_extra_flags=""
+        if [ "$uname" = "Darwin" ]; then
+            # Make meson find libintl.
+            export CPATH="$GETTEXT_INSTALL/include"
+            export LIBRARY_PATH="$GETTEXT_INSTALL/lib"
+        fi
         if [ -n "$MINGW_CROSS" ]; then
             # The libraries rely on DllMain which doesn't work with static.
             local glib2_library="shared"
@@ -292,6 +320,13 @@ build_glib2()
             $glib2_extra_flags "$src" "$build"
         ninja -C "$build" -j$PROCS
         meson install -C "$build"
+
+        # Patch pkgconfig file for static dependencies on macOS to include
+        # the -framework definitions.
+        if [ "$uname" = "Darwin" ]; then
+            sed_i -e "s|Libs:.*|& \\\\|" -e "s|Libs.private:||" \
+                "$GLIB2_INSTALL/lib/pkgconfig/glib-2.0.pc"
+        fi
     ) > "$LOG/glib2.log" 2>&1 &
     wait $! || print_failed_and_exit "$LOG/glib2.log"
 )
@@ -367,7 +402,7 @@ build_libtool()
     wait $! || print_failed_and_exit "$LOG/libtool.log"
 )
 
-# Build libiconv (dependency of libunistring)
+# Build libiconv (dependency of libunistring for mingw)
 build_libiconv()
 (
     local src="$SRC/$LIBICONV_DIR"
@@ -399,9 +434,16 @@ build_libunistring()
     mkdir -p "$build"
     (
         cd "$build"
+
+        local libunistring_extra_flags=""
+        if [ -n "$MINGW_CROSS" ]; then
+            # Pass some extra flags to configure.
+            local libunistring_extra_flags="--with-libiconv-prefix=$LIBICONV_INSTALL"
+        fi
+
         "$src/configure" $CONFIGURE_HOST --prefix="$LIBUNISTRING_INSTALL" \
             --disable-shared --enable-static \
-            --with-libiconv-prefix="$LIBICONV_INSTALL"
+            "$libunistring_extra_flags"
         $MAKE -j$PROCS
         $MAKE install
     ) > "$LOG/libunistring.log" 2>&1 &
@@ -417,7 +459,7 @@ build_guile()
     extract "$GUILE_ARCHIVE" "$src"
     # Fix configure on CentOS to not look in lib64.
     sed_i "s|=lib64|=lib|g" "$src/configure"
-    if [ "$uname" = "FreeBSD" ]; then
+    if [ "$uname" = "Darwin" ] || [ "$uname" = "FreeBSD" ]; then
         # Fix non-portable invocation of inplace sed.
         sed_i "s|\$(SED) -i|\$(SED)|" "$src/libguile/Makefile.in"
     fi
@@ -447,10 +489,15 @@ build_guile()
         cd "$build"
 
         local guile_extra_flags=""
+        if [ "$uname" = "Darwin" ]; then
+            # Pass some extra flags to configure.
+            local guile_extra_flags="--with-libintl-prefix=$GETTEXT_INSTALL"
+            export LDFLAGS="-Wl,-framework -Wl,CoreFoundation"
+        fi
         if [ -n "$MINGW_CROSS" ]; then
             # Pass some extra flags to configure. Need explicit --build option
             # to enforce cross compilation.
-            local guile_extra_flags="--build=$NATIVE_TARGET CC_FOR_BUILD=cc GUILE_FOR_BUILD=$NATIVE_GUILE_INSTALL/bin/guile"
+            local guile_extra_flags="--build=$NATIVE_TARGET CC_FOR_BUILD=cc GUILE_FOR_BUILD=$NATIVE_GUILE_INSTALL/bin/guile --with-libiconv-prefix=$LIBICONV_INSTALL"
         fi
 
         PKG_CONFIG_LIBDIR="$GC_INSTALL/lib/pkgconfig:$LIBFFI_INSTALL/lib/pkgconfig" \
@@ -458,7 +505,6 @@ build_guile()
             --disable-shared --enable-static --with-pic \
             --without-threads --disable-networking \
             --disable-error-on-warning $guile_extra_flags \
-            --with-libiconv-prefix="$LIBICONV_INSTALL" \
             --with-libunistring-prefix="$LIBUNISTRING_INSTALL" \
             --with-libgmp-prefix="$GMP_INSTALL" \
             --with-libltdl-prefix="$LIBTOOL_INSTALL"
@@ -591,13 +637,18 @@ if [ -z "$MINGW_CROSS" ]; then
 fi
 fns="$fns build_fontconfig"
 fns="$fns build_ghostscript"
+if [ "$uname" = "Darwin" ]; then
+    fns="$fns build_gettext"
+fi
 fns="$fns build_libffi"
 fns="$fns build_zlib"
 fns="$fns build_glib2"
 fns="$fns build_gc"
 fns="$fns build_gmp"
 fns="$fns build_libtool"
-fns="$fns build_libiconv"
+if [ -n "$MINGW_CROSS" ]; then
+    fns="$fns build_libiconv"
+fi
 fns="$fns build_libunistring"
 fns="$fns build_guile"
 fns="$fns build_harfbuzz"

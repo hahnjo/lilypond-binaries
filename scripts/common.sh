@@ -17,6 +17,12 @@ if [ "$uname" = "Linux" ]; then
     (
         sed -i "$@"
     )
+elif [ "$uname" = "Darwin" ]; then
+    MAKE=make
+    sed_i()
+    (
+        sed -i '' "$@"
+    )
 elif [ "$uname" = "FreeBSD" ]; then
     if ! type gmake >/dev/null 2>&1; then
         echo "Please install GNU make!" >&2
@@ -32,7 +38,7 @@ fi
 if [ -z "$PROCS" ]; then
     if type nproc >/dev/null 2>&1; then
         PROCS=$(nproc)
-    elif [ "$(uname)" = "FreeBSD" ]; then
+    elif [ "$uname" = "FreeBSD" ] || [ "$uname" = "Darwin" ]; then
         PROCS=$(sysctl -n hw.ncpu)
     fi
 fi
