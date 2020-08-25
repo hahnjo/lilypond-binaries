@@ -6,7 +6,7 @@ set -e
 #  * fontconfig
 #    * expat
 #    * freetype2
-#    * util-linux (for libuuid on Linux)
+#    * util-linux (for libuuid, except mingw)
 #  * ghostscript
 #    * fontconfig
 #    * freetype2
@@ -19,7 +19,7 @@ set -e
 #    * libffi
 #    * libtool
 #    * libunistring
-#      * libiconv
+#      * libiconv (for mingw)
 #  * pango
 #    * fontconfig
 #    * freetype2
@@ -367,7 +367,7 @@ build_libtool()
     wait $! || print_failed_and_exit "$LOG/libtool.log"
 )
 
-# Build libiconv (dependency of libunistring)
+# Build libiconv (dependency of libunistring for mingw)
 build_libiconv()
 (
     local src="$SRC/$LIBICONV_DIR"
@@ -399,9 +399,16 @@ build_libunistring()
     mkdir -p "$build"
     (
         cd "$build"
+
+        local libunistring_extra_flags=""
+        if [ -n "$MINGW_CROSS" ]; then
+            # Pass some extra flags to configure.
+            local libunistring_extra_flags="--with-libiconv-prefix=$LIBICONV_INSTALL"
+        fi
+
         "$src/configure" $CONFIGURE_HOST --prefix="$LIBUNISTRING_INSTALL" \
             --disable-shared --enable-static \
-            --with-libiconv-prefix="$LIBICONV_INSTALL"
+            "$libunistring_extra_flags"
         $MAKE -j$PROCS
         $MAKE install
     ) > "$LOG/libunistring.log" 2>&1 &
@@ -450,7 +457,7 @@ build_guile()
         if [ -n "$MINGW_CROSS" ]; then
             # Pass some extra flags to configure. Need explicit --build option
             # to enforce cross compilation.
-            local guile_extra_flags="--build=$NATIVE_TARGET CC_FOR_BUILD=cc GUILE_FOR_BUILD=$NATIVE_GUILE_INSTALL/bin/guile"
+            local guile_extra_flags="--build=$NATIVE_TARGET CC_FOR_BUILD=cc GUILE_FOR_BUILD=$NATIVE_GUILE_INSTALL/bin/guile --with-libiconv-prefix=$LIBICONV_INSTALL"
         fi
 
         PKG_CONFIG_LIBDIR="$GC_INSTALL/lib/pkgconfig:$LIBFFI_INSTALL/lib/pkgconfig" \
@@ -458,7 +465,6 @@ build_guile()
             --disable-shared --enable-static --with-pic \
             --without-threads --disable-networking \
             --disable-error-on-warning $guile_extra_flags \
-            --with-libiconv-prefix="$LIBICONV_INSTALL" \
             --with-libunistring-prefix="$LIBUNISTRING_INSTALL" \
             --with-libgmp-prefix="$GMP_INSTALL" \
             --with-libltdl-prefix="$LIBTOOL_INSTALL"
@@ -597,7 +603,9 @@ fns="$fns build_glib2"
 fns="$fns build_gc"
 fns="$fns build_gmp"
 fns="$fns build_libtool"
-fns="$fns build_libiconv"
+if [ -n "$MINGW_CROSS" ]; then
+    fns="$fns build_libiconv"
+fi
 fns="$fns build_libunistring"
 fns="$fns build_guile"
 fns="$fns build_harfbuzz"
