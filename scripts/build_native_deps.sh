@@ -270,8 +270,8 @@ build_glib2()
     sed_i "s|build_tests =.*|build_tests = false|" "$src/meson.build"
     # Don't build gio, fuzzing
     sed_i -E "/subdir\('(gio|fuzzing)'\)/d" "$src/meson.build"
-    # Don't build gobject-query
-    sed_i "/gobject-query/,+3d" "$src/gobject/meson.build"
+    # Don't build gobject-query (delete all three lines)
+    sed_i "/gobject-query/{N;N;N;d;}" "$src/gobject/meson.build"
 
     echo "Building glib2..."
     mkdir -p "$build"
@@ -417,7 +417,7 @@ build_guile()
     extract "$GUILE_ARCHIVE" "$src"
     # Fix configure on CentOS to not look in lib64.
     sed_i "s|=lib64|=lib|g" "$src/configure"
-    if [ "$uname" = "FreeBSD" ]; then
+    if [ "$uname" = "Darwin" ] || [ "$uname" = "FreeBSD" ]; then
         # Fix non-portable invocation of inplace sed.
         sed_i "s|\$(SED) -i|\$(SED)|" "$src/libguile/Makefile.in"
     fi
