@@ -11,10 +11,12 @@ set -e
 #    * fontconfig
 #    * freetype2
 #  * glib2
+#    * gettext-runtime (for macOS)
 #    * libffi
 #    * zlib
 #  * guile (version 2.2)
 #    * gc
+#    * gettext-runtime (for macOS)
 #    * gmp
 #    * libffi
 #    * libtool
@@ -49,6 +51,7 @@ download "$FONTCONFIG_URL" "$FONTCONFIG_ARCHIVE"
 
 download "$GHOSTSCRIPT_URL" "$GHOSTSCRIPT_ARCHIVE"
 
+download "$GETTEXT_URL" "$GETTEXT_ARCHIVE"
 download "$LIBFFI_URL" "$LIBFFI_ARCHIVE"
 download "$ZLIB_URL" "$ZLIB_ARCHIVE"
 download "$GLIB2_URL" "$GLIB2_ARCHIVE"
@@ -210,6 +213,26 @@ build_ghostscript()
     wait $! || print_failed_and_exit "$LOG/ghostscript.log"
 )
 
+# Build gettext (dependency of glib2 on macOS)
+build_gettext()
+(
+    local src="$SRC/$GETTEXT_DIR"
+    local build="$BUILD/$GETTEXT_DIR"
+
+    extract "$GETTEXT_ARCHIVE" "$src"
+
+    echo "Building gettext..."
+    mkdir -p "$build"
+    (
+        cd "$build"
+        "$src/gettext-runtime/configure" $CONFIGURE_HOST \
+            --prefix="$GETTEXT_INSTALL" --disable-shared --enable-static
+        $MAKE -j$PROCS
+        $MAKE install
+    ) > "$LOG/gettext.log" 2>&1 &
+    wait $! || print_failed_and_exit "$LOG/gettext.log"
+)
+
 # Build libffi (dependency of glib2)
 build_libffi()
 (
@@ -278,6 +301,11 @@ build_glib2()
     (
         local glib2_library="static"
         local glib2_extra_flags=""
+        if [ "$uname" = "Darwin" ]; then
+            # Make meson find libintl.
+            export CPATH="$GETTEXT_INSTALL/include"
+            export LIBRARY_PATH="$GETTEXT_INSTALL/lib"
+        fi
         if [ -n "$MINGW_CROSS" ]; then
             # The libraries rely on DllMain which doesn't work with static.
             local glib2_library="shared"
@@ -454,6 +482,10 @@ build_guile()
         cd "$build"
 
         local guile_extra_flags=""
+        if [ "$uname" = "Darwin" ]; then
+            # Pass some extra flags to configure.
+            local guile_extra_flags="--with-libintl-prefix=$GETTEXT_INSTALL"
+        fi
         if [ -n "$MINGW_CROSS" ]; then
             # Pass some extra flags to configure. Need explicit --build option
             # to enforce cross compilation.
@@ -597,6 +629,9 @@ if [ -z "$MINGW_CROSS" ]; then
 fi
 fns="$fns build_fontconfig"
 fns="$fns build_ghostscript"
+if [ "$uname" = "Darwin" ]; then
+    fns="$fns build_gettext"
+fi
 fns="$fns build_libffi"
 fns="$fns build_zlib"
 fns="$fns build_glib2"
