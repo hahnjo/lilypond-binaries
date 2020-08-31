@@ -11,28 +11,27 @@ TOOLS_BIN="$TOOLS/bin"
 
 # Detect environment.
 uname="$(uname)"
-if [ "$uname" = "Linux" ]; then
-    MAKE=make
+
+if sed --version 2>&1 | grep -q "GNU sed"; then
     sed_i()
     (
         sed -i "$@"
     )
-elif [ "$uname" = "Darwin" ]; then
-    MAKE=make
+else
     sed_i()
     (
         sed -i '' "$@"
     )
-elif [ "$uname" = "FreeBSD" ]; then
+fi
+
+if [ "$uname" = "FreeBSD" ]; then
     if ! type gmake >/dev/null 2>&1; then
         echo "Please install GNU make!" >&2
         exit 1
     fi
     MAKE=gmake
-    sed_i()
-    (
-        sed -i '' "$@"
-    )
+else
+    MAKE=make
 fi
 
 if [ -z "$PROCS" ]; then
