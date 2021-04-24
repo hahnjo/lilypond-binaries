@@ -13,11 +13,14 @@ fi
 if [ -n "$MINGW_CROSS" ]; then
     # Build below mingw/
     ROOT="$MINGW_ROOT"
-    # Use native Python.
+    # Use native versions of some installations.
+    GHOSTSCRIPT_INSTALL="$NATIVE_GHOSTSCRIPT_INSTALL"
+    GUILE_INTERPRETER="$NATIVE_GUILE_INSTALL/bin/guile"
     PYTHON_INSTALL="$NATIVE_PYTHON_INSTALL"
 else
     # Not cross-compiling, so just empty.
     CONFIGURE_HOST=""
+    GUILE_INTERPRETER="$GUILE_INSTALL/bin/guile"
 fi
 
 LILYPOND="$ROOT/lilypond"
@@ -73,6 +76,7 @@ mkdir -p "$LILYPOND_BUILD"
     pkg_config_libdir="$pkg_config_libdir:$FRIBIDI_INSTALL/lib/pkgconfig"
     pkg_config_libdir="$pkg_config_libdir:$PANGO_INSTALL/lib/pkgconfig"
     pkg_config_libdir="$pkg_config_libdir:$UTIL_LINUX_INSTALL/lib/pkgconfig"
+    pkg_config_libdir="$pkg_config_libdir:$ZLIB_INSTALL/lib/pkgconfig"
 
     extra_flags="--enable-static-gxx"
     if [ "$uname" = "Darwin" ]; then
@@ -81,7 +85,7 @@ mkdir -p "$LILYPOND_BUILD"
 
     PKG_CONFIG_LIBDIR="$pkg_config_libdir" \
     GHOSTSCRIPT="$GHOSTSCRIPT_INSTALL/bin/gs" \
-    GUILE="$GUILE_INSTALL/bin/guile" PYTHON="$PYTHON_INSTALL/bin/python3" \
+    GUILE="$GUILE_INTERPRETER" PYTHON="$PYTHON_INSTALL/bin/python3" \
     "$LILYPOND_SRC/configure" $CONFIGURE_HOST --prefix="$LILYPOND_INSTALL" \
         --disable-documentation $extra_flags \
         CPPFLAGS="-isystem $LILYPOND_FLEXLEXER -DSTATIC"

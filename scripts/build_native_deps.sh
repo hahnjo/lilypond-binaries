@@ -28,7 +28,7 @@ set -e
 #    * fribidi
 #    * glib2
 #    * harfbuzz
-#  * python (version 2.7)
+#  * python
 
 . "$(dirname $0)/tools.sh"
 . "$(dirname $0)/native_deps.sh"
@@ -179,13 +179,11 @@ build_ghostscript()
     local build="$BUILD/$GHOSTSCRIPT_DIR"
 
     extract "$GHOSTSCRIPT_ARCHIVE" "$src"
+    rm -rf "$src/tesseract" "$src/leptonica"
     if [ -n "$MINGW_CROSS" ]; then
-        # Do not pass -rdynamic
-        sed_i 's|DYNAMIC_LIBS="-rdynamic"|DYNAMIC_LIBS=""|g' "$src/configure"
-        # Fix invocation of configure for AUX
-        sed_i 's|../\$0|\$0|' "$src/configure"
-        # Remove function call that is win32 specific
-        sed_i 's|gp_local_arg_encoding_get_codepoint|NULL|g' "$src/psi/psapi.c"
+        # Fix function definition, see https://bugs.ghostscript.com/show_bug.cgi?id=699331
+        sed_i -e 's|gp_local_arg_encoding_get_codepoint(FILE|gp_local_arg_encoding_get_codepoint(gp_file|' \
+              -e 's| fgetc(file| gp_fgetc(file|g' "$src/base/gp_unix.c"
     fi
 
     echo "Building ghostscript..."
@@ -196,16 +194,14 @@ build_ghostscript()
         local gs_extra_flags=""
         if [ -n "$MINGW_CROSS" ]; then
             # Pass some extra flags to configure.
-            local gs_extra_flags="--build=$NATIVE_TARGET --with-exe-ext=.exe "
-            local gs_extra_flags="$gs_extra_flags --with-arch_h=$src/arch/windows-x64-msvc.h"
-            local gs_extra_flags="$gs_extra_flags CCAUX=cc CFLAGS=-DHAVE_SYS_TIMES_H=0 CFLAGSAUX= "
+            local gs_extra_flags="CFLAGS=-DHAVE_SYS_TIMES_H=0"
         fi
 
         PKG_CONFIG_LIBDIR="$FONTCONFIG_INSTALL/lib/pkgconfig:$FREETYPE_INSTALL/lib/pkgconfig" \
         "$src/configure" $CONFIGURE_HOST --prefix="$GHOSTSCRIPT_INSTALL" \
             --disable-dynamic --with-drivers=PNG,PS \
             --without-libidn --without-libpaper --without-libtiff --without-pdftoraster \
-            --without-ijs --without-luratech --without-jbig2dec --without-cal \
+            --without-ijs --without-jbig2dec --without-cal \
             --disable-cups --disable-openjpeg --disable-gtk $gs_extra_flags
         $MAKE -j$PROCS
         $MAKE install
@@ -291,8 +287,8 @@ build_glib2()
     extract "$GLIB2_ARCHIVE" "$src"
     # Don't build tests
     sed_i "s|build_tests =.*|build_tests = false|" "$src/meson.build"
-    # Don't build gio, fuzzing
-    sed_i -E "/subdir\('(gio|fuzzing)'\)/d" "$src/meson.build"
+    # Don't build fuzzing
+    sed_i "/subdir\('fuzzing'\)/d" "$src/meson.build"
     # Don't build gobject-query (delete all three lines)
     sed_i "/gobject-query/{N;N;N;d;}" "$src/gobject/meson.build"
 
@@ -314,9 +310,9 @@ build_glib2()
         fi
 
         PKG_CONFIG_LIBDIR="$LIBFFI_INSTALL/lib/pkgconfig:$ZLIB_INSTALL/lib/pkgconfig" \
-        meson setup --prefix "$GLIB2_INSTALL" --libdir=lib --buildtype plain \
+        meson setup --prefix "$GLIB2_INSTALL" --libdir=lib --buildtype release \
             --default-library $glib2_library --auto-features=disabled \
-            -D internal_pcre=true -D libmount=false -D xattr=false \
+            -D internal_pcre=true -D libmount=disabled -D xattr=false \
             $glib2_extra_flags "$src" "$build"
         ninja -C "$build" -j$PROCS
         meson install -C "$build"
@@ -563,6 +559,9 @@ build_fribidi()
             --disable-shared --enable-static
         $MAKE -j$PROCS
         $MAKE install
+        # Patch pkgconfig file for static dependencies.
+        sed_i -e "s|Cflags:.*|& \\\\|" -e "s|CFLAGS.private:||" \
+            "$FRIBIDI_INSTALL/lib/pkgconfig/fribidi.pc"
     ) > "$LOG/fribidi.log" 2>&1 &
     wait $! || print_failed_and_exit "$LOG/fribidi.log"
 )
@@ -574,10 +573,8 @@ build_pango()
     local build="$BUILD/$PANGO_DIR"
 
     extract "$PANGO_ARCHIVE" "$src"
-    # Make cairo optional again.
-    sed_i "s|cairo_req_version,$|& required: false,|" "$src/meson.build"
-    # Don't build utils, tests, tools
-    sed_i -E "/subdir\('(utils|tests|tools)'\)/d" "$src/meson.build"
+    # Don't build utils, examples, tests, tools
+    sed_i -E "/subdir\('(utils|examples|tests|tools)'\)/d" "$src/meson.build"
 
     echo "Building pango..."
     mkdir -p "$build"
@@ -595,11 +592,12 @@ build_pango()
         pkg_config_libdir="$pkg_config_libdir:$FRIBIDI_INSTALL/lib/pkgconfig"
         pkg_config_libdir="$pkg_config_libdir:$GLIB2_INSTALL/lib/pkgconfig"
         pkg_config_libdir="$pkg_config_libdir:$LIBFFI_INSTALL/lib/pkgconfig"
+        pkg_config_libdir="$pkg_config_libdir:$ZLIB_INSTALL/lib/pkgconfig"
 
         PATH="$GLIB2_INSTALL/bin:$PATH" PKG_CONFIG_LIBDIR="$pkg_config_libdir" \
-        meson setup --prefix "$PANGO_INSTALL" --libdir=lib --buildtype plain \
+        meson setup --prefix "$PANGO_INSTALL" --libdir=lib --buildtype release \
             --default-library static --auto-features=disabled \
-            -D introspection=false \
+            -D fontconfig=enabled -D freetype=enabled \
             $pango_extra_flags "$src" "$build"
         ninja -C "$build" -j$PROCS
         meson install -C "$build"

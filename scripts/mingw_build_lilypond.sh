@@ -7,6 +7,8 @@ set -e
 # Include native_deps.sh to get the install location of native Python.
 . "$(dirname $0)/native_deps.sh"
 
+NATIVE_GHOSTSCRIPT_INSTALL="$GHOSTSCRIPT_INSTALL"
+NATIVE_GUILE_INSTALL="$GUILE_INSTALL"
 NATIVE_PYTHON_INSTALL="$PYTHON_INSTALL"
 
 # Now build LilyPond, but below MINGW_ROOT.

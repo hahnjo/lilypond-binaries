@@ -8,7 +8,7 @@ mkdir -p "$TOOLS"
 mkdir -p "$TOOLS_BIN"
 
 # Download & link Meson.
-MESON_VERSION="0.53.0"
+MESON_VERSION="0.57.2"
 MESON_ARCHIVE="meson-$MESON_VERSION.tar.gz"
 MESON_URL="https://github.com/mesonbuild/meson/releases/download/$MESON_VERSION/$MESON_ARCHIVE"
 MESON_TOOLS_DIR_NAME="meson-$MESON_VERSION"
@@ -27,7 +27,7 @@ link_meson
 echo ""
 
 # Build & install Ninja.
-NINJA_VERSION="1.9.0"
+NINJA_VERSION="1.10.2"
 NINJA_ARCHIVE="ninja-v$NINJA_VERSION.tar.gz"
 NINJA_URL="https://github.com/ninja-build/ninja/archive/v$NINJA_VERSION.tar.gz"
 NINJA_TOOLS_DIR="$TOOLS/ninja-v$NINJA_VERSION"

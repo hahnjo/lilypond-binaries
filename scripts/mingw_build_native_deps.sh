@@ -32,7 +32,7 @@ cpp = '$MINGW_TOOLCHAIN_INSTALL/bin/$MINGW_TARGET-g++'
 windres = '$MINGW_TOOLCHAIN_INSTALL/bin/$MINGW_TARGET-windres'
 pkgconfig = 'pkgconf'
 
-[properties]
+[built-in options]
 # -DG_INTL_STATIC_COMPILATION needed for glib2
 c_args = ['-DG_INTL_STATIC_COMPILATION']
 EOF
