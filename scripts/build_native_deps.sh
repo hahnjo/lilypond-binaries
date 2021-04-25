@@ -127,6 +127,10 @@ build_util_linux()
     local build="$BUILD/$UTIL_LINUX_DIR"
 
     extract "$UTIL_LINUX_ARCHIVE" "$src"
+    if [ "$uname" = "FreeBSD" ]; then
+        # Fix build.
+        sed_i "s|lib/libcommon_la-procutils.lo ||" "$src/Makefile.in"
+    fi
 
     echo "Building util-linux..."
     mkdir -p "$build"
