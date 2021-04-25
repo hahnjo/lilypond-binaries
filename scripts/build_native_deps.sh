@@ -528,19 +528,27 @@ build_harfbuzz()
     local build="$BUILD/$HARFBUZZ_DIR"
 
     extract "$HARFBUZZ_ARCHIVE" "$src"
-    # Don't build util, test, docs
-    sed_i "s|SUBDIRS = src util test docs|SUBDIRS = src|" "$src/Makefile.in"
 
     echo "Building harfbuzz..."
     mkdir -p "$build"
     (
-        cd "$build"
-        PKG_CONFIG_LIBDIR="$FREETYPE_INSTALL/lib/pkgconfig:$GLIB2_INSTALL/lib/pkgconfig" \
-        "$src/configure" $CONFIGURE_TARGETS --prefix="$HARFBUZZ_INSTALL" \
-            --disable-shared --enable-static --with-icu=no
-        $MAKE -j$PROCS
-        $MAKE install
+        local harfbuzz_extra_flags=""
+        if [ -n "$MINGW_CROSS" ]; then
+            local harfbuzz_extra_flags="$MESON_CROSS_ARG"
+        fi
 
+        cd "$build"
+        PKG_CONFIG_LIBDIR="$FREETYPE_INSTALL/lib/pkgconfig" \
+        meson setup --prefix "$HARFBUZZ_INSTALL" --libdir=lib --buildtype release \
+            --default-library static --auto-features=disabled -D tests=disabled \
+            -D freetype=enabled $harfbuzz_extra_flags "$src" "$build"
+        ninja -C "$build" -j$PROCS
+        meson install -C "$build"
+
+        if [ "$uname" = "FreeBSD" ]; then
+            # Move pkgconfig files where we expect them...
+            mv "$HARFBUZZ_INSTALL/libdata/pkgconfig" "$HARFBUZZ_INSTALL/lib/pkgconfig"
+        fi
         # Patch pkgconfig file for static dependencies.
         sed_i "s|Requires.private:|Requires:|" \
             "$HARFBUZZ_INSTALL/lib/pkgconfig/harfbuzz.pc"
