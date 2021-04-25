@@ -10,6 +10,7 @@ fi
 . "$(dirname $0)/native_deps.sh"
 . "$(dirname $0)/tools.sh"
 
+NATIVE_TARGET="$(cc -dumpmachine)"
 if [ -n "$MINGW_CROSS" ]; then
     # Build below mingw/
     ROOT="$MINGW_ROOT"
@@ -18,10 +19,10 @@ if [ -n "$MINGW_CROSS" ]; then
     GUILE_INTERPRETER="$NATIVE_GUILE_INSTALL/bin/guile"
     PYTHON_INSTALL="$NATIVE_PYTHON_INSTALL"
 else
-    # Not cross-compiling, so just empty.
-    CONFIGURE_HOST=""
+    CONFIGURE_HOST="--host=$NATIVE_TARGET"
     GUILE_INTERPRETER="$GUILE_INSTALL/bin/guile"
 fi
+CONFIGURE_TARGETS="--build=$NATIVE_TARGET $CONFIGURE_HOST"
 
 LILYPOND="$ROOT/lilypond"
 LILYPOND_SRC="$LILYPOND/src"
@@ -86,7 +87,7 @@ mkdir -p "$LILYPOND_BUILD"
     PKG_CONFIG_LIBDIR="$pkg_config_libdir" \
     GHOSTSCRIPT="$GHOSTSCRIPT_INSTALL/bin/gs" \
     GUILE="$GUILE_INTERPRETER" PYTHON="$PYTHON_INSTALL/bin/python3" \
-    "$LILYPOND_SRC/configure" $CONFIGURE_HOST --prefix="$LILYPOND_INSTALL" \
+    "$LILYPOND_SRC/configure" $CONFIGURE_TARGETS --prefix="$LILYPOND_INSTALL" \
         --disable-documentation $extra_flags \
         CPPFLAGS="-isystem $LILYPOND_FLEXLEXER -DSTATIC"
 

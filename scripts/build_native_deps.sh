@@ -42,6 +42,7 @@ if [ -z "$CONFIGURE_HOST" ]; then
     # tries to target the specific host CPU unless --host is given...
     CONFIGURE_HOST="--host=$NATIVE_TARGET"
 fi
+CONFIGURE_TARGETS="--build=$NATIVE_TARGET $CONFIGURE_HOST"
 
 echo "Downloading source code..."
 download "$EXPAT_URL" "$EXPAT_ARCHIVE"
@@ -89,7 +90,7 @@ build_expat()
     mkdir -p "$build"
     (
         cd "$build"
-        "$src/configure" $CONFIGURE_HOST --prefix="$EXPAT_INSTALL" \
+        "$src/configure" $CONFIGURE_TARGETS --prefix="$EXPAT_INSTALL" \
             --disable-shared --enable-static \
             --without-xmlwf --without-examples --without-tests
         $MAKE -j$PROCS
@@ -110,7 +111,7 @@ build_freetype2()
     mkdir -p "$build"
     (
         cd "$build"
-        "$src/configure" $CONFIGURE_HOST --prefix="$FREETYPE_INSTALL" \
+        "$src/configure" $CONFIGURE_TARGETS --prefix="$FREETYPE_INSTALL" \
             --disable-shared --enable-static \
             --with-zlib=no --with-bzip2=no --with-png=no --with-harfbuzz=no
         $MAKE -j$PROCS
@@ -131,7 +132,7 @@ build_util_linux()
     mkdir -p "$build"
     (
         cd "$build"
-        "$src/configure" $CONFIGURE_HOST --prefix="$UTIL_LINUX_INSTALL" \
+        "$src/configure" $CONFIGURE_TARGETS --prefix="$UTIL_LINUX_INSTALL" \
             --disable-shared --enable-static \
             --disable-all-programs --enable-libuuid
         $MAKE -j$PROCS
@@ -160,7 +161,7 @@ build_fontconfig()
         pkg_config_libdir="$EXPAT_INSTALL/lib/pkgconfig:$FREETYPE_INSTALL/lib/pkgconfig"
         pkg_config_libdir="$pkg_config_libdir:$UTIL_LINUX_INSTALL/lib/pkgconfig"
         PKG_CONFIG_LIBDIR="$pkg_config_libdir" \
-        "$src/configure" $CONFIGURE_HOST --prefix="$FONTCONFIG_INSTALL" \
+        "$src/configure" $CONFIGURE_TARGETS --prefix="$FONTCONFIG_INSTALL" \
             --disable-shared --enable-static --disable-docs
         $MAKE -j$PROCS
         $MAKE install
@@ -198,7 +199,7 @@ build_ghostscript()
         fi
 
         PKG_CONFIG_LIBDIR="$FONTCONFIG_INSTALL/lib/pkgconfig:$FREETYPE_INSTALL/lib/pkgconfig" \
-        "$src/configure" $CONFIGURE_HOST --prefix="$GHOSTSCRIPT_INSTALL" \
+        "$src/configure" $CONFIGURE_TARGETS --prefix="$GHOSTSCRIPT_INSTALL" \
             --disable-dynamic --with-drivers=PNG,PS \
             --without-libidn --without-libpaper --without-libtiff --without-pdftoraster \
             --without-ijs --without-jbig2dec --without-cal \
@@ -221,7 +222,7 @@ build_gettext()
     mkdir -p "$build"
     (
         cd "$build"
-        "$src/gettext-runtime/configure" $CONFIGURE_HOST \
+        "$src/gettext-runtime/configure" $CONFIGURE_TARGETS \
             --prefix="$GETTEXT_INSTALL" --disable-shared --enable-static
         $MAKE -j$PROCS
         $MAKE install
@@ -241,7 +242,7 @@ build_libffi()
     mkdir -p "$build"
     (
         cd "$build"
-        "$src/configure" $CONFIGURE_HOST --prefix="$LIBFFI_INSTALL" \
+        "$src/configure" $CONFIGURE_TARGETS --prefix="$LIBFFI_INSTALL" \
             --disable-shared --enable-static
         $MAKE -j$PROCS
         $MAKE install
@@ -339,9 +340,9 @@ build_gc()
     mkdir -p "$build"
     (
         cd "$build"
-        "$src/configure" $CONFIGURE_HOST --prefix="$GC_INSTALL" \
+        "$src/configure" $CONFIGURE_TARGETS --prefix="$GC_INSTALL" \
             --disable-shared --enable-static --disable-docs \
-            --enable-large-config
+            --enable-large-config --with-libatomic-ops=none
         $MAKE -j$PROCS
         $MAKE install
 
@@ -370,7 +371,7 @@ build_gmp()
             local gmp_extra_flags="CC_FOR_BUILD=cc "
         fi
 
-        "$src/configure" $CONFIGURE_HOST --prefix="$GMP_INSTALL" \
+        "$src/configure" $CONFIGURE_TARGETS --prefix="$GMP_INSTALL" \
             --disable-shared --enable-static --with-pic $gmp_extra_flags
         $MAKE -j$PROCS
         $MAKE install
@@ -390,7 +391,7 @@ build_libtool()
     mkdir -p "$build"
     (
         cd "$build"
-        "$src/configure" $CONFIGURE_HOST --prefix="$LIBTOOL_INSTALL" \
+        "$src/configure" $CONFIGURE_TARGETS --prefix="$LIBTOOL_INSTALL" \
             --disable-shared --enable-static --with-pic
         $MAKE -j$PROCS
         $MAKE install
@@ -410,7 +411,7 @@ build_libiconv()
     mkdir -p "$build"
     (
         cd "$build"
-        "$src/configure" $CONFIGURE_HOST --prefix="$LIBICONV_INSTALL" \
+        "$src/configure" $CONFIGURE_TARGETS --prefix="$LIBICONV_INSTALL" \
             --disable-shared --enable-static
         $MAKE -j$PROCS
         $MAKE install
@@ -437,7 +438,7 @@ build_libunistring()
             local libunistring_extra_flags="--with-libiconv-prefix=$LIBICONV_INSTALL"
         fi
 
-        "$src/configure" $CONFIGURE_HOST --prefix="$LIBUNISTRING_INSTALL" \
+        "$src/configure" $CONFIGURE_TARGETS --prefix="$LIBUNISTRING_INSTALL" \
             --disable-shared --enable-static \
             "$libunistring_extra_flags"
         $MAKE -j$PROCS
@@ -497,7 +498,7 @@ build_guile()
         fi
 
         PKG_CONFIG_LIBDIR="$GC_INSTALL/lib/pkgconfig:$LIBFFI_INSTALL/lib/pkgconfig" \
-        "$src/configure" $CONFIGURE_HOST --prefix="$GUILE_INSTALL" \
+        "$src/configure" $CONFIGURE_TARGETS --prefix="$GUILE_INSTALL" \
             --disable-shared --enable-static --with-pic \
             --without-threads --disable-networking \
             --disable-error-on-warning $guile_extra_flags \
@@ -531,7 +532,7 @@ build_harfbuzz()
     (
         cd "$build"
         PKG_CONFIG_LIBDIR="$FREETYPE_INSTALL/lib/pkgconfig:$GLIB2_INSTALL/lib/pkgconfig" \
-        "$src/configure" $CONFIGURE_HOST --prefix="$HARFBUZZ_INSTALL" \
+        "$src/configure" $CONFIGURE_TARGETS --prefix="$HARFBUZZ_INSTALL" \
             --disable-shared --enable-static --with-icu=no
         $MAKE -j$PROCS
         $MAKE install
@@ -555,7 +556,7 @@ build_fribidi()
     mkdir -p "$build"
     (
         cd "$build"
-        "$src/configure" $CONFIGURE_HOST --prefix="$FRIBIDI_INSTALL" \
+        "$src/configure" $CONFIGURE_TARGETS --prefix="$FRIBIDI_INSTALL" \
             --disable-shared --enable-static
         $MAKE -j$PROCS
         $MAKE install
