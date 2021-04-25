@@ -86,8 +86,23 @@ strip "$LILYPOND_DIR/scripts/$python"
 
 # Copy packages for Python ...
 cp -RL "$PYTHON_INSTALL/lib/$python" "$LILYPOND_DIR/lib"
-# ... but delete tests.
-rm -r "$LILYPOND_DIR/lib/$python/test"
+# ... but delete a number of directories we don't need:
+(
+    cd "$LILYPOND_DIR/lib/$python"
+    rm -rf $(find . -type d -name "test")
+    # This directory contains the libpython*.a library.
+    rm -rf "config-$PYTHON_VERSION_MAJOR"*
+    # "Distributing Python Modules"
+    rm -rf "distutils"
+    # "Integrated Development and Learning Environment"
+    rm -rf "idlelib"
+    # 2to3
+    rm -rf "lib2to3"
+    # The build system installs pip and setuptools.
+    rm -rf "site-packages"
+)
+# Strip dynamically linked and loaded libraries.
+strip "$LILYPOND_DIR/lib/$python/lib-dynload"/*.so
 
 # Move Python scripts, instead create wrappers.
 for s in $PYTHON_SCRIPTS; do
