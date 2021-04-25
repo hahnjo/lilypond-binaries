@@ -606,6 +606,11 @@ build_pango()
             $pango_extra_flags "$src" "$build"
         ninja -C "$build" -j$PROCS
         meson install -C "$build"
+
+        if [ "$uname" = "FreeBSD" ]; then
+            # Move pkgconfig files where we expect them...
+            mv "$PANGO_INSTALL/libdata/pkgconfig" "$PANGO_INSTALL/lib/pkgconfig"
+        fi
     ) > "$LOG/pango.log" 2>&1 &
     wait $! || print_failed_and_exit "$LOG/pango.log"
 )
