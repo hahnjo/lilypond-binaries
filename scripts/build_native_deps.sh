@@ -227,7 +227,8 @@ build_gettext()
     (
         cd "$build"
         "$src/gettext-runtime/configure" $CONFIGURE_TARGETS \
-            --prefix="$GETTEXT_INSTALL" --disable-shared --enable-static
+            --prefix="$GETTEXT_INSTALL" --disable-shared --enable-static \
+            --disable-java
         $MAKE -j$PROCS
         $MAKE install
     ) > "$LOG/gettext.log" 2>&1 &
