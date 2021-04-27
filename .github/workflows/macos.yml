@@ -1,0 +1,89 @@
+name: macos
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'LilyPond version to build'
+        required: true
+jobs:
+  macos:
+    runs-on: macos-10.15
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+      - name: Cache downloads
+        uses: actions/cache@v2
+        with:
+          path: downloads/
+          key: downloads-${{ hashFiles('scripts/native_deps.sh') }}-${{ hashFiles('scripts/get_tools_*.sh') }}
+
+      - name: Cache tools
+        uses: actions/cache@v2
+        with:
+          path: tools/
+          key: tools-${{ hashFiles('scripts/get_tools_*.sh') }}
+      - name: Build tools
+        run: |
+          [ -f tools/bin/texi2any ] || ./scripts/get_tools_gnu.sh
+          [ -f tools/bin/ninja ] || ./scripts/get_tools_meson_ninja.sh
+      - name: Upload logs on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: logs-tools
+          path: tools/*.log
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: dependencies/
+          key: dependencies-${{ hashFiles('scripts/native_deps.sh') }}-${{ hashFiles('scripts/build_native_deps.sh') }}
+      - name: Build native dependencies
+        run: |
+          [ -d dependencies ] || ./scripts/build_native_deps.sh
+          rm -rf dependencies/build dependencies/log dependencies/src
+      - name: Upload logs on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: logs-dependencies
+          path: dependencies/log/
+
+      - name: Install fonts
+        run: |
+          mkdir -p ~/.local/share/fonts
+          wget http://www.gust.org.pl/projects/e-foundry/tex-gyre/whole/tg2_501otf.zip
+          unzip tg2_501otf.zip
+          cp tg2_501otf/*.otf ~/.local/share/fonts
+          wget -q https://github.com/ArtifexSoftware/urw-base35-fonts/archive/20170801.1.tar.gz
+          tar xf 20170801.1.tar.gz
+          cp urw-base35-fonts-20170801.1/fonts/*.otf ~/.local/share/fonts
+      - name: Install dependencies
+        run: brew install basictex bison fontforge t1utils
+
+      - name: Download LilyPond
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          VERSION_MAJOR="$(echo $VERSION | cut -f 1-2 -d'.')"
+          wget http://lilypond.org/downloads/sources/v$VERSION_MAJOR/lilypond-$VERSION.tar.gz
+      - name: Build LilyPond
+        run: |
+          export PATH="/usr/local/texlive/2021basic/bin/universal-darwin:$PATH"
+          export PATH="/usr/local/opt/bison/bin:$PATH"
+          VERSION="${{ github.event.inputs.version }}"
+          LILYPOND_TAR=lilypond-$VERSION.tar.gz ./scripts/build_lilypond.sh
+      - name: Upload logs on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: logs-lilypond
+          path: |
+            lilypond/build.log
+            lilypond/build/config.log
+      - name: Package LilyPond
+        run: ./scripts/package_tar.sh
+      - name: Upload LilyPond
+        uses: actions/upload-artifact@v2
+        with:
+          name: lilypond
+          path: lilypond-darwin-*.tar.gz
