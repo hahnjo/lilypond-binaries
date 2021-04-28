@@ -102,7 +102,8 @@ cp -RL "$PYTHON_INSTALL/lib/$python" "$LILYPOND_DIR/lib"
     rm -rf "site-packages"
 )
 # Strip dynamically linked and loaded libraries.
-strip "$LILYPOND_DIR/lib/$python/lib-dynload"/*.so
+# -x = --discard-all; not -s = --strip-all
+strip -x "$LILYPOND_DIR/lib/$python/lib-dynload"/*.so
 
 # Move Python scripts, instead create wrappers.
 for s in $PYTHON_SCRIPTS; do
