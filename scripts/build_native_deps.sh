@@ -26,6 +26,7 @@ set -e
 #    * fontconfig
 #    * freetype2
 #    * fribidi
+#    * gettext-runtime (for macOS)
 #    * glib2
 #    * harfbuzz
 #  * python
@@ -222,6 +223,12 @@ build_gettext()
     local build="$BUILD/$GETTEXT_DIR"
 
     extract "$GETTEXT_ARCHIVE" "$src"
+    if [ "$uname" = "Darwin" ]; then
+        # localcharset.c defines locale_charset, which is also provided by
+        # Guile. However, Guile has a modification to this file so we really
+        # need to build that version.
+        sed_i "s|localcharset.lo||" "$src/gettext-runtime/intl/Makefile.in"
+    fi
 
     echo "Building gettext..."
     mkdir -p "$build"
@@ -636,6 +643,15 @@ build_python()
     mkdir -p "$build"
     (
         cd "$build"
+
+        if [ "$uname" = "Darwin" ]; then
+            # Make the build system find libintl.
+            export CPATH="$GETTEXT_INSTALL/include"
+            export LIBRARY_PATH="$GETTEXT_INSTALL/lib"
+            # Fix linking static libintl from static libpython.
+            export LDFLAGS="-lintl -liconv"
+        fi
+
         "$src/configure" --prefix="$PYTHON_INSTALL" \
             --disable-shared --enable-static \
             ac_cv_search_crypt=no ac_cv_search_crypt_r=no
