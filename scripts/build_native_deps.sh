@@ -291,12 +291,10 @@ build_glib2()
     local build="$BUILD/$GLIB2_DIR"
 
     extract "$GLIB2_ARCHIVE" "$src"
-    # Don't build tests
-    sed_i "s|build_tests =.*|build_tests = false|" "$src/meson.build"
-    # Don't build fuzzing
-    sed_i "/subdir\('fuzzing'\)/d" "$src/meson.build"
     # Don't build gobject-query (delete all three lines)
     sed_i "/gobject-query/{N;N;N;d;}" "$src/gobject/meson.build"
+    # Fix detection of libintl on macOS
+    sed_i "s|'ngettext'|'ngettext', args : osx_ldflags|" "$src/meson.build"
 
     echo "Building glib2..."
     mkdir -p "$build"
@@ -318,7 +316,7 @@ build_glib2()
         PKG_CONFIG_LIBDIR="$LIBFFI_INSTALL/lib/pkgconfig:$ZLIB_INSTALL/lib/pkgconfig" \
         meson setup --prefix "$GLIB2_INSTALL" --libdir=lib --buildtype release \
             --default-library $glib2_library --auto-features=disabled \
-            -D internal_pcre=true -D libmount=disabled -D xattr=false \
+            -D internal_pcre=true -D libmount=disabled -D tests=false -D xattr=false \
             $glib2_extra_flags "$src" "$build"
         ninja -C "$build" -j$PROCS
         meson install -C "$build"
