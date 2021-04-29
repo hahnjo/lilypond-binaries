@@ -207,7 +207,8 @@ build_ghostscript()
             --disable-dynamic --with-drivers=PNG,PS \
             --without-libidn --without-libpaper --without-libtiff --without-pdftoraster \
             --without-ijs --without-jbig2dec --without-cal \
-            --disable-cups --disable-openjpeg --disable-gtk $gs_extra_flags
+            --disable-fontconfig --disable-dbus --disable-cups \
+            --disable-openjpeg --disable-gtk $gs_extra_flags
         $MAKE -j$PROCS
         $MAKE install
     ) > "$LOG/ghostscript.log" 2>&1 &
@@ -507,7 +508,8 @@ build_guile()
             --disable-error-on-warning $guile_extra_flags \
             --with-libunistring-prefix="$LIBUNISTRING_INSTALL" \
             --with-libgmp-prefix="$GMP_INSTALL" \
-            --with-libltdl-prefix="$LIBTOOL_INSTALL"
+            --with-libltdl-prefix="$LIBTOOL_INSTALL" \
+            ac_cv_search_crypt=no
         $MAKE -j$PROCS
         $MAKE install
 
@@ -635,7 +637,8 @@ build_python()
     (
         cd "$build"
         "$src/configure" --prefix="$PYTHON_INSTALL" \
-            --disable-shared --enable-static
+            --disable-shared --enable-static \
+            ac_cv_search_crypt=no ac_cv_search_crypt_r=no
         $MAKE -j$PROCS
         $MAKE install
     ) > "$LOG/python.log" 2>&1 &
