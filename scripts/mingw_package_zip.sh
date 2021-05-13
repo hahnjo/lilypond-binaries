@@ -19,6 +19,23 @@ PYTHON_SCRIPTS="abc2ly convert-ly etf2ly lilymidi lilypond-book lilysong midi2ly
 GUILE_SCRIPTS="lilypond-invoke-editor"
 
 LILYPOND_MINGW_ZIP="lilypond-mingw-x86_64.zip"
+LILYPOND_MINGW_FULL_ZIP="lilypond-mingw-x86_64-full.zip"
+
+PYTHON_EMBED_ARCHIVE="python-$PYTHON_VERSION-embed-amd64.zip"
+PYTHON_EMBED_URL="https://www.python.org/ftp/python/$PYTHON_VERSION/$PYTHON_EMBED_ARCHIVE"
+PYTHON_EMBED_DIR="python-$PYTHON_VERSION-embed-amd64"
+
+download "$PYTHON_EMBED_URL" "$PYTHON_EMBED_ARCHIVE"
+if [ -d "$MINGW_ROOT/$PYTHON_EMBED_DIR" ]; then
+    echo "'$PYTHON_EMBED_ARCHIVE' already extracted!"
+else
+    echo "Extracting '$PYTHON_EMBED_ARCHIVE'..."
+    (
+        mkdir -p "$MINGW_ROOT/$PYTHON_EMBED_DIR"
+        cd "$MINGW_ROOT/$PYTHON_EMBED_DIR"
+        unzip -q "$DOWNLOADS/$PYTHON_EMBED_ARCHIVE"
+    )
+fi
 
 echo "Creating '$LILYPOND_MINGW_ZIP'..."
 
@@ -95,4 +112,21 @@ cp "$LILYPOND_SRC/COPYING" "$LICENSES_DIR/lilypond.COPYING"
     # Package lib/ last which contains the ccache for Guile.
     contents="$(ls -d lilypond/* | grep -v lilypond/lib) lilypond/lib"
     zip --recurse-paths --quiet "$ROOT/$LILYPOND_MINGW_ZIP" $contents
+)
+
+echo "Creating '$LILYPOND_MINGW_FULL_ZIP'..."
+
+# Copy needed files from embeddable Python package.
+cp "$MINGW_ROOT/$PYTHON_EMBED_DIR"/*.dll "$LILYPOND_DIR/bin"
+cp "$MINGW_ROOT/$PYTHON_EMBED_DIR"/*.exe "$LILYPOND_DIR/bin"
+cp "$MINGW_ROOT/$PYTHON_EMBED_DIR"/*.pyd "$LILYPOND_DIR/bin"
+cp "$MINGW_ROOT/$PYTHON_EMBED_DIR"/*.zip "$LILYPOND_DIR/bin"
+cp "$MINGW_ROOT/$PYTHON_EMBED_DIR/LICENSE.txt" "$LICENSES_DIR/$PYTHON_EMBED_DIR.LICENSE.txt"
+
+# Create archive.
+(
+    cd "$PACKAGE_DIR"
+    # Package lib/ last which contains the ccache for Guile.
+    contents="$(ls -d lilypond/* | grep -v lilypond/lib) lilypond/lib"
+    zip --recurse-paths --quiet "$ROOT/$LILYPOND_MINGW_FULL_ZIP" $contents
 )
