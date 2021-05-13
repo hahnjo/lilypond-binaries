@@ -82,6 +82,9 @@ mkdir -p "$LILYPOND_BUILD"
     extra_flags="--enable-static-gxx"
     if [ "$uname" = "Darwin" ]; then
         extra_flags=""
+        # Make the build system find libintl.
+        export CPATH="$GETTEXT_INSTALL/include"
+        export LIBRARY_PATH="$GETTEXT_INSTALL/lib"
     fi
 
     PKG_CONFIG_LIBDIR="$pkg_config_libdir" \

@@ -26,6 +26,7 @@ set -e
 #    * fontconfig
 #    * freetype2
 #    * fribidi
+#    * gettext-runtime (for macOS)
 #    * glib2
 #    * harfbuzz
 #  * python
@@ -127,7 +128,7 @@ build_util_linux()
     local build="$BUILD/$UTIL_LINUX_DIR"
 
     extract "$UTIL_LINUX_ARCHIVE" "$src"
-    if [ "$uname" = "FreeBSD" ]; then
+    if [ "$uname" = "Darwin" ] || [ "$uname" = "FreeBSD" ]; then
         # Fix build.
         sed_i "s|lib/libcommon_la-procutils.lo ||" "$src/Makefile.in"
     fi
@@ -207,7 +208,8 @@ build_ghostscript()
             --disable-dynamic --with-drivers=PNG,PS \
             --without-libidn --without-libpaper --without-libtiff --without-pdftoraster \
             --without-ijs --without-jbig2dec --without-cal \
-            --disable-cups --disable-openjpeg --disable-gtk $gs_extra_flags
+            --disable-fontconfig --disable-dbus --disable-cups \
+            --disable-openjpeg --disable-gtk $gs_extra_flags
         $MAKE -j$PROCS
         $MAKE install
     ) > "$LOG/ghostscript.log" 2>&1 &
@@ -221,13 +223,20 @@ build_gettext()
     local build="$BUILD/$GETTEXT_DIR"
 
     extract "$GETTEXT_ARCHIVE" "$src"
+    if [ "$uname" = "Darwin" ]; then
+        # localcharset.c defines locale_charset, which is also provided by
+        # Guile. However, Guile has a modification to this file so we really
+        # need to build that version.
+        sed_i "s|localcharset.lo||" "$src/gettext-runtime/intl/Makefile.in"
+    fi
 
     echo "Building gettext..."
     mkdir -p "$build"
     (
         cd "$build"
         "$src/gettext-runtime/configure" $CONFIGURE_TARGETS \
-            --prefix="$GETTEXT_INSTALL" --disable-shared --enable-static
+            --prefix="$GETTEXT_INSTALL" --disable-shared --enable-static \
+            --disable-java
         $MAKE -j$PROCS
         $MAKE install
     ) > "$LOG/gettext.log" 2>&1 &
@@ -290,12 +299,10 @@ build_glib2()
     local build="$BUILD/$GLIB2_DIR"
 
     extract "$GLIB2_ARCHIVE" "$src"
-    # Don't build tests
-    sed_i "s|build_tests =.*|build_tests = false|" "$src/meson.build"
-    # Don't build fuzzing
-    sed_i "/subdir\('fuzzing'\)/d" "$src/meson.build"
     # Don't build gobject-query (delete all three lines)
     sed_i "/gobject-query/{N;N;N;d;}" "$src/gobject/meson.build"
+    # Fix detection of libintl on macOS
+    sed_i "s|'ngettext'|'ngettext', args : osx_ldflags|" "$src/meson.build"
 
     echo "Building glib2..."
     mkdir -p "$build"
@@ -317,7 +324,7 @@ build_glib2()
         PKG_CONFIG_LIBDIR="$LIBFFI_INSTALL/lib/pkgconfig:$ZLIB_INSTALL/lib/pkgconfig" \
         meson setup --prefix "$GLIB2_INSTALL" --libdir=lib --buildtype release \
             --default-library $glib2_library --auto-features=disabled \
-            -D internal_pcre=true -D libmount=disabled -D xattr=false \
+            -D internal_pcre=true -D libmount=disabled -D tests=false -D xattr=false \
             $glib2_extra_flags "$src" "$build"
         ninja -C "$build" -j$PROCS
         meson install -C "$build"
@@ -508,7 +515,8 @@ build_guile()
             --disable-error-on-warning $guile_extra_flags \
             --with-libunistring-prefix="$LIBUNISTRING_INSTALL" \
             --with-libgmp-prefix="$GMP_INSTALL" \
-            --with-libltdl-prefix="$LIBTOOL_INSTALL"
+            --with-libltdl-prefix="$LIBTOOL_INSTALL" \
+            ac_cv_search_crypt=no
         $MAKE -j$PROCS
         $MAKE install
 
@@ -635,8 +643,18 @@ build_python()
     mkdir -p "$build"
     (
         cd "$build"
+
+        if [ "$uname" = "Darwin" ]; then
+            # Make the build system find libintl.
+            export CPATH="$GETTEXT_INSTALL/include"
+            export LIBRARY_PATH="$GETTEXT_INSTALL/lib"
+            # Fix linking static libintl from static libpython.
+            export LDFLAGS="-lintl -liconv"
+        fi
+
         "$src/configure" --prefix="$PYTHON_INSTALL" \
-            --disable-shared --enable-static
+            --disable-shared --enable-static \
+            ac_cv_search_crypt=no ac_cv_search_crypt_r=no
         $MAKE -j$PROCS
         $MAKE install
     ) > "$LOG/python.log" 2>&1 &
