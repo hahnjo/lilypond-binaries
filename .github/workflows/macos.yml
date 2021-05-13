@@ -37,11 +37,11 @@ jobs:
         uses: actions/cache@v2
         with:
           path: dependencies/
-          key: dependencies-${{ hashFiles('scripts/native_deps.sh') }}-${{ hashFiles('scripts/build_native_deps.sh') }}
+          key: dependencies-src-install-${{ hashFiles('scripts/native_deps.sh') }}-${{ hashFiles('scripts/build_native_deps.sh') }}
       - name: Build native dependencies
         run: |
           [ -d dependencies ] || ./scripts/build_native_deps.sh
-          rm -rf dependencies/build dependencies/log dependencies/src
+          rm -rf dependencies/build dependencies/log
       - name: Upload logs on failure
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
