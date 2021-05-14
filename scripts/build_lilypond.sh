@@ -80,7 +80,7 @@ mkdir -p "$LILYPOND_BUILD"
     pkg_config_libdir="$pkg_config_libdir:$ZLIB_INSTALL/lib/pkgconfig"
 
     extra_flags="--enable-static-gxx"
-    if [ "$uname" = "Darwin" ]; then
+    if [ "$uname" = "Darwin" ] || [ "$uname" = "FreeBSD" ]; then
         extra_flags=""
         # Make the build system find libintl.
         export CPATH="$GETTEXT_INSTALL/include"

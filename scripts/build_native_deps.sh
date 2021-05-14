@@ -11,7 +11,7 @@ set -e
 #    * fontconfig
 #    * freetype2
 #  * glib2
-#    * gettext-runtime (for macOS)
+#    * gettext-runtime (for FreeBSD and macOS)
 #    * libffi
 #    * zlib
 #  * guile (version 2.2)
@@ -216,19 +216,18 @@ build_ghostscript()
     wait $! || print_failed_and_exit "$LOG/ghostscript.log"
 )
 
-# Build gettext (dependency of glib2 on macOS)
+# Build gettext (dependency of glib2 on FreeBSD and macOS)
 build_gettext()
 (
     local src="$SRC/$GETTEXT_DIR"
     local build="$BUILD/$GETTEXT_DIR"
 
     extract "$GETTEXT_ARCHIVE" "$src"
-    if [ "$uname" = "Darwin" ]; then
-        # localcharset.c defines locale_charset, which is also provided by
-        # Guile. However, Guile has a modification to this file so we really
-        # need to build that version.
-        sed_i "s|localcharset.lo||" "$src/gettext-runtime/intl/Makefile.in"
-    fi
+    # localcharset.c defines locale_charset, which is also provided by
+    # Guile. However, Guile has a modification to this file so we really
+    # need to build that version.
+    sed_i "s|localcharset.lo||" "$src/gettext-runtime/intl/Makefile.in"
+    sed_i "s|locale_charset ()|NULL|" "$src/gettext-runtime/intl/dcigettext.c"
 
     echo "Building gettext..."
     mkdir -p "$build"
@@ -309,7 +308,7 @@ build_glib2()
     (
         local glib2_library="static"
         local glib2_extra_flags=""
-        if [ "$uname" = "Darwin" ]; then
+        if [ "$uname" = "Darwin" ] || [ "$uname" = "FreeBSD" ]; then
             # Make meson find libintl.
             export CPATH="$GETTEXT_INSTALL/include"
             export LIBRARY_PATH="$GETTEXT_INSTALL/lib"
@@ -671,7 +670,7 @@ if [ -z "$MINGW_CROSS" ]; then
 fi
 fns="$fns build_fontconfig"
 fns="$fns build_ghostscript"
-if [ "$uname" = "Darwin" ]; then
+if [ "$uname" = "Darwin" ] || [ "$uname" = "FreeBSD" ]; then
     fns="$fns build_gettext"
 fi
 fns="$fns build_libffi"
