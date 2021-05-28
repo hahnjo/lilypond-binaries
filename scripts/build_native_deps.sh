@@ -186,6 +186,7 @@ build_ghostscript()
 
     extract "$GHOSTSCRIPT_ARCHIVE" "$src"
     rm -rf "$src/tesseract" "$src/leptonica"
+    rm -rf "$src/Resource/Font" "$src/Resource/CIDFont" "$src/Resource/CIDFSubst" "$src/Resource/CMap"
     if [ -n "$MINGW_CROSS" ]; then
         # Fix function definition, see https://bugs.ghostscript.com/show_bug.cgi?id=699331
         sed_i -e 's|gp_local_arg_encoding_get_codepoint(FILE|gp_local_arg_encoding_get_codepoint(gp_file|' \
@@ -210,8 +211,8 @@ build_ghostscript()
             --without-ijs --without-jbig2dec --without-cal \
             --disable-fontconfig --disable-dbus --disable-cups \
             --disable-openjpeg --disable-gtk $gs_extra_flags
-        $MAKE -j$PROCS
-        $MAKE install
+        $MAKE -j$PROCS PS_FONT_DEPS= GS_LIB_DEFAULT=
+        $MAKE install PS_FONT_DEPS=
     ) > "$LOG/ghostscript.log" 2>&1 &
     wait $! || print_failed_and_exit "$LOG/ghostscript.log"
 )
