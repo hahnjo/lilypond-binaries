@@ -52,7 +52,7 @@ cp -RL "$LILYPOND_INSTALL"/* "$LILYPOND_DIR"
 "$MINGW_STRIP" "$LILYPOND_DIR/bin/lilypond.exe"
 
 # Copy required libraries.
-for lib in libglib-2.0-0.dll libgobject-2.0-0.dll libintl.dll; do
+for lib in libgio-2.0-0.dll libglib-2.0-0.dll libgmodule-2.0-0.dll libgobject-2.0-0.dll libintl.dll; do
     cp "$GLIB2_INSTALL/bin/$lib" "$LILYPOND_DIR/bin"
 done
 
