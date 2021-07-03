@@ -8,7 +8,7 @@ The same holds for binaries compiled on FreeBSD 11: They run fine on the current
 
 All of the above is implemented via portable (POSIX) shell scripts.
 The advantage is that there is no need for a more complex language like Python.
-Still, the approach currently works for GNU/Linux and FreeBSD and can likely be adapted for macOS.
+Still, the approach currently works for GNU/Linux, FreeBSD, and macOS.
 
 
 How to use
