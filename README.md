@@ -1,3 +1,5 @@
+## This repository is deprecated, a rewritten version of the concepts have been upstreamed into the official LilyPond tree!
+
 This repository contains a number of scripts to build and package binary distributions of LilyPond.
 The basic idea is to build static libraries and only depend on very basic dynamic libraries (such as `libc`).
 As a result, the binaries are forward-compatible and can be run on newer releases of the OS.
